@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VINI · Agent Performance</title>
+<style>
+  :root{
+    --bg:#F4F5F8; --card:#FFFFFF; --sink:#F1F1F5;
+    --hair:#E1E3E9; --hair-2:#C4C2D1;
+    --ink:#262C42; --ink-2:#4C495D; --ink-3:#86839A; --faint:#AAA8BD;
+    --accent:#522EBF; --accent-2:#6843CC; --soft:#F1EDFB;
+    --pos:#008743; --pos-s:#EBFAF3; --neg:#B42318; --neg-s:#FFF5F5;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    --mono:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    --sh:none;
+    --r:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;
+    background:var(--bg);min-height:100vh}
+  ::-webkit-scrollbar{width:11px;height:11px}::-webkit-scrollbar-thumb{background:#D3D7DF;border-radius:11px;border:3px solid transparent;background-clip:padding-box}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.09em}
+
+  .top{position:sticky;top:0;z-index:50;height:60px;display:flex;align-items:center;gap:16px;padding:0 26px;background:rgba(246,247,249,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--hair)}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:16px}
+  .logo .mk{width:30px;height:30px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+  .nav{display:flex;gap:2px;margin-left:8px}
+  .nav a{font-size:13px;font-weight:600;color:var(--ink-3);padding:9px 12px;border-radius:9px;transition:.15s;position:relative}
+  .nav a:hover{color:var(--ink);background:#F1F1F5}
+  .nav a.on{color:var(--accent)}
+  .nav a.on:after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px;background:var(--accent)}
+  .grow{flex:1}
+  .me{width:36px;height:36px;border-radius:11px;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+
+  .page{max-width:1240px;margin:0 auto;padding:26px 26px 70px}
+  .head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--accent)}
+  h1{font-size:27px;font-weight:800;letter-spacing:-.03em;margin-top:5px}
+  .head .sub{color:var(--ink-2);font-size:13.5px;margin-top:5px}
+  .head .ctrls{margin-left:auto;display:flex;align-items:center;gap:10px}
+
+  .aswitch{position:relative}
+  .aswitch .cb{display:flex;align-items:center;gap:10px;padding:7px 12px 7px 8px;border-radius:13px;background:#fff;border:1px solid var(--hair-2);box-shadow:var(--sh);transition:.15s}
+  .aswitch .cb:hover{border-color:#C9CFDA}
+  .aswitch .pin{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:800;font-size:13px}
+  .aswitch .an{font-size:13.5px;font-weight:700;line-height:1.05}
+  .aswitch .ar{font-size:10px;color:var(--faint);font-family:var(--mono);letter-spacing:.05em}
+  .aswitch .chev{color:var(--faint);transition:.2s}.aswitch.open .chev{transform:rotate(180deg)}
+  .menu{position:absolute;top:calc(100% + 8px);right:0;min-width:250px;background:#fff;border:1px solid var(--hair-2);border-radius:15px;padding:6px;z-index:70;opacity:0;transform:translateY(-6px);pointer-events:none;transition:.16s}
+  .aswitch.open .menu{opacity:1;transform:none;pointer-events:auto}
+  .mo{display:flex;align-items:center;gap:11px;padding:10px;border-radius:11px;width:100%;text-align:left;transition:.12s}
+  .mo:hover{background:var(--sink)}.mo.sel{background:var(--soft)}
+  .mo .mi{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--ink);color:#fff;font-weight:800;font-size:12px}
+  .mo.sel .mi{background:var(--accent)}
+  .mo .mn{font-size:13.5px;font-weight:700}.mo .mr{font-size:10px;color:var(--faint);font-family:var(--mono)}
+  .mo .mrate{margin-left:auto;font-weight:800;color:var(--accent)}
+
+  .period{display:inline-flex;background:#F1F1F5;border-radius:12px;padding:4px}
+  .period button{padding:7px 12px;border-radius:9px;font-size:12px;font-weight:700;color:var(--ink-2);font-family:var(--mono);letter-spacing:.04em}
+  .period button.on{background:#fff;color:var(--accent);box-shadow:var(--sh)}
+
+  /* HERO */
+  .hero{border-radius:22px;padding:26px 28px;background:#fff;border:1px solid var(--hair);box-shadow:var(--sh);margin-bottom:16px;position:relative;overflow:hidden}
+  .hero:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+  .hero-in{display:grid;grid-template-columns:1fr 1.05fr;gap:30px;align-items:center}
+  .hero-cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--accent);font-weight:700}
+  .hero-big{font-size:62px;font-weight:800;letter-spacing:-.045em;line-height:1;margin-top:10px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .hero-run{font-size:13.5px;color:var(--ink-2);margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .hero-trend{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:12px;padding:5px 11px;border-radius:9px;background:var(--pos-s);color:var(--pos)}
+  .builder{display:flex;align-items:center;gap:12px;background:var(--sink);border:1px solid var(--hair);border-radius:18px;padding:18px 14px}
+  .bcell{text-align:center;flex:1}
+  .bcell .bn{font-size:25px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .bcell .bl{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--faint);margin-top:7px}
+  .bop{font-size:19px;color:var(--faint);font-weight:600}
+  .bcell.edit{background:var(--soft);border-radius:13px;padding:12px 6px;flex:1.15}
+  .binput{display:inline-flex;align-items:center;justify-content:center;font-size:23px;font-weight:800;color:var(--accent)}
+  .binput input{width:76px;font:inherit;color:var(--accent);border:none;border-bottom:2px dashed var(--accent);background:transparent;text-align:center;outline:none;padding:2px 0;-moz-appearance:textfield}
+  .binput input::-webkit-outer-spin-button,.binput input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+  /* KPI cards minimal */
+  .kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+  .kpi{background:#fff;border:1px solid var(--hair);border-radius:var(--r);padding:18px;box-shadow:var(--sh);transition:.18s;min-width:0}
+  .kpi:hover{border-color:var(--hair-2);transform:translateY(-2px)}
+  .kpi .ki{width:32px;height:32px;border-radius:9px;background:var(--soft);color:var(--accent);display:grid;place-items:center;margin-bottom:13px}
+  .kpi .kl{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;color:var(--ink-3)}
+  .kpi .kv{font-size:29px;font-weight:800;letter-spacing:-.03em;margin-top:5px;font-variant-numeric:tabular-nums}
+  .kpi .kspark{height:26px;margin-top:11px}
+  .kpi .kf{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+  .kpi .ks{font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.04em}
+  .dl-chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;padding:2px 7px;border-radius:7px}
+  .dl-chip.up{background:var(--pos-s);color:var(--pos)}.dl-chip.down{background:var(--neg-s);color:var(--neg)}
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .55s cubic-bezier(.22,1,.36,1),transform .55s cubic-bezier(.22,1,.36,1)}
+  .reveal.in{opacity:1;transform:none}
+  .kpi{position:relative}
+  .kpi .kx{position:absolute;top:15px;right:14px;color:var(--faint);transition:transform .25s,color .25s;line-height:0}
+  .kpi.open .kx{transform:rotate(180deg);color:var(--accent)}
+  .livedot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-left:6px;animation:blink 1.6s ease-in-out infinite;vertical-align:middle}
+  @keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+  .kpi-more{margin-top:12px}
+  .kpi-more .mr{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--hair);font-size:12px}
+  .kpi-more .mr .ml2{color:var(--ink-2);font-weight:600}.kpi-more .mr .mv2{font-weight:800;font-variant-numeric:tabular-nums}
+  .hcell{position:relative}.hcell.snk{transform:scale(1.16);z-index:2}
+  .khint{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);margin:-4px 2px 16px;text-align:right}
+  .frow{cursor:pointer;padding:5px;border-radius:10px;transition:background .15s}
+  .frow:hover{background:var(--sink)}.frow.sel{background:var(--soft)}
+  .fdetail{max-height:0;overflow:hidden;opacity:0;background:var(--sink);border:1px solid var(--hair);border-radius:12px;padding:0 14px;transition:max-height .35s cubic-bezier(.22,1,.36,1),opacity .3s,padding .35s,margin-top .35s;font-size:13px;color:var(--ink-2)}
+  .fdetail.show{max-height:90px;opacity:1;padding:13px 15px;margin-top:14px}
+  .fdetail b{color:var(--ink)}.fdetail .k{color:var(--accent);font-weight:800}
+  .hero-left{min-width:0}
+  .hero-run{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .hero-sub{font-size:12.5px;color:var(--ink-2)}
+  .hvspark{height:44px;margin-top:18px}
+  .hero-cum{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;color:var(--faint);margin-top:7px}
+  .sec-h .snum{color:var(--accent);font-family:var(--mono);font-weight:800;font-size:14px;margin-right:11px}
+  .segcap{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--faint);margin:0 2px 11px}
+  .segbar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .segtab{padding:15px 17px;border-radius:15px;border:1px solid var(--hair);background:#fff;box-shadow:var(--sh);cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}
+  .segtab:hover{transform:translateY(-2px);border-color:var(--hair-2)}
+  .segtab.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .segtab .stl{font-size:13px;font-weight:700}
+  .segtab .strow{display:flex;align-items:baseline;gap:8px;margin-top:8px}
+  .segtab .stbig{font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .segtab .stpc{font-size:11px;font-weight:800;color:var(--accent);background:var(--soft);padding:2px 7px;border-radius:6px}
+  .segtab .stv{font-family:var(--mono);font-size:8px;color:var(--faint);letter-spacing:.06em;margin-top:8px}
+  .segtab.on .stv{color:var(--accent)}
+  .segtab.empty{border-style:dashed;background:var(--sink);cursor:default;box-shadow:none}
+  .segtab.empty .stl{color:var(--ink-3);font-weight:600}
+  .segtab.empty .add{font-size:20px;font-weight:800;color:var(--accent)}
+  .segwrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+  .seggroup{border:1px solid var(--hair);border-radius:18px;padding:12px 13px 14px;background:var(--sink)}
+  .seggroup.sales{border-top:3px solid #522EBF}
+  .seggroup.service{border-top:3px solid #0891B2}
+  .seggroup-h{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;font-weight:700;color:var(--ink-2);text-transform:uppercase;margin:2px 2px 12px}
+  .seg-dot{width:9px;height:9px;border-radius:50%}
+  .seggrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .seggroup .segtab{background:#fff}
+  .seggroup.service .segtab.on{border-color:#0891B2;box-shadow:0 0 0 1px #0891B2}
+  .seggroup.service .segtab.on .stv{color:#0891B2}
+  .seggroup.service .segtab .stpc{color:#0891B2;background:#0891B214}
+  @media(max-width:720px){.segwrap{grid-template-columns:1fr}}
+  .customdates{display:flex;align-items:center;gap:10px;margin:14px 0 0;padding:12px 14px;background:#fff;border:1px solid var(--hair);border-radius:12px;box-shadow:var(--sh)}
+  .customdates .cd-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--faint);font-weight:700}
+  .customdates .cd-input{font-family:var(--sans);font-size:13px;padding:6px 10px;border:1px solid var(--hair-2);border-radius:9px;color:var(--ink);background:#fff}
+  .customdates .cd-sep{color:var(--faint)}
+  @media(max-width:1080px){.segbar{grid-template-columns:repeat(2,1fr)}}
+  .srclist{display:flex;flex-direction:column;gap:3px}
+  .srcrow{display:grid;grid-template-columns:22px 1fr 32% 62px;gap:14px;align-items:center;padding:10px 6px;border-radius:10px;transition:background .12s}
+  .srcrow:hover{background:var(--sink)}
+  .srcrow .sri{font-family:var(--mono);font-size:11px;font-weight:800;color:var(--faint)}
+  .srcrow:first-child .sri{color:var(--accent)}
+  .srcrow .srn{font-size:13.5px;font-weight:700;min-width:0}
+  .srcrow .srn .srs{display:block;font-family:var(--mono);font-size:8.5px;color:var(--faint);font-weight:500;letter-spacing:.04em;margin-top:3px}
+  .srbar{height:8px;background:var(--sink);border-radius:6px;overflow:hidden;border:1px solid var(--hair)}
+  .srbar .lfill{height:100%;border-radius:6px;width:0;transition:width 1s cubic-bezier(.22,1,.36,1)}
+  .srcrow .srb{text-align:right;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+  .srcrow .srb.z{color:var(--faint)}
+  .srcrow .srb span{display:block;font-family:var(--mono);font-size:7.5px;color:var(--faint);font-weight:500;letter-spacing:.05em;margin-top:2px}
+  .stkbar{display:flex;height:22px;border-radius:8px;overflow:hidden;border:1px solid var(--hair);margin-bottom:16px}
+  .stkseg{height:100%;width:0;transition:width .9s cubic-bezier(.22,1,.36,1)}
+  .rlist{display:flex;flex-direction:column;gap:1px}
+  .rhead{display:grid;grid-template-columns:1fr 66px 66px 56px;gap:10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;color:var(--faint);padding:0 6px 8px;border-bottom:1px solid var(--hair);margin-bottom:4px}
+  .rhead span:not(:first-child){text-align:right}
+  .rrow{display:grid;grid-template-columns:1fr 66px 66px 56px;gap:10px;align-items:center;padding:9px 6px;border-radius:8px;font-size:13px;transition:background .12s}
+  .rrow:hover{background:var(--sink)}
+  .rrow .rn2{font-weight:600}.rrow .rdot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:9px;vertical-align:middle}
+  .rrow .num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .qt.qr{display:flex;align-items:center;gap:13px}
+  .qt.qr .ql{margin-top:0;line-height:1.35}
+  .fbar,.lfill,.stkseg,.dseg,.arc,.hcell,.hs,.wbar,.vbar,.srbar .lfill{transition:none!important;animation:none!important}
+  .teamgrid{display:grid;grid-template-columns:230px 1fr;gap:30px;align-items:center}
+  .bubbles{display:grid;place-items:center}.bubbles svg{width:210px;height:200px;max-width:100%}
+  .teamlist{display:flex;flex-direction:column;gap:16px}
+  .tlrow{display:grid;grid-template-columns:36px 1fr auto;gap:14px;align-items:center;cursor:pointer;padding:8px;border-radius:12px;transition:background .12s}
+  .tlrow:hover{background:var(--sink)}.tlrow.on{background:var(--soft)}
+  .tlav{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px}
+  .tlmid{min-width:0}
+  .tlname{font-size:14px;font-weight:700}
+  .tlname .tlsub{font-family:var(--mono);font-size:8px;color:var(--faint);letter-spacing:.06em;margin-left:7px;font-weight:600}
+  .tlbar{height:8px;background:var(--sink);border-radius:6px;overflow:hidden;margin-top:8px}
+  .tlbar i{display:block;height:100%;border-radius:6px}
+  .tlval{text-align:right;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+  .tlval span{display:block;font-family:var(--mono);font-size:8px;color:var(--faint);font-weight:500;letter-spacing:.04em;margin-top:3px}
+  @media(max-width:820px){.teamgrid{grid-template-columns:1fr;justify-items:center}}
+
+  .aicard{background:#fff;border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:14px;padding:16px 18px;box-shadow:var(--sh);display:flex;align-items:center;gap:14px}
+  .aitag{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--accent);background:var(--soft);padding:5px 10px;border-radius:20px;white-space:nowrap}
+  .aicard .aitxt{font-size:14px;font-weight:500;line-height:1.5}.aicard b{color:var(--accent)}
+
+  .sec-h{display:flex;align-items:center;gap:11px;margin:30px 2px 14px;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+  .sec-h .si{width:28px;height:28px;border-radius:9px;background:var(--soft);color:var(--accent);display:grid;place-items:center}
+  .sec-h h2{font-size:16px;font-weight:800;letter-spacing:-.02em}
+  .sec-h .sn{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.08em;margin-left:auto}
+  .grid{display:grid;gap:16px}.g2{grid-template-columns:1fr 1fr}
+  .card{background:#fff;border:1px solid var(--hair);border-radius:var(--r);padding:22px;box-shadow:var(--sh)}
+  .card h3{font-size:15px;font-weight:700}
+  .card .csub{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.07em;margin:4px 0 18px}
+
+  .funnel{display:flex;flex-direction:column;gap:13px}
+  .frow{display:grid;grid-template-columns:150px 1fr 78px;gap:16px;align-items:center}
+  .frow .fn{font-size:24px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+  .frow .fl{font-size:11.5px;color:var(--ink-2);font-weight:600;margin-top:3px}
+  .ftrack{height:32px;border-radius:9px;background:var(--sink);overflow:hidden;border:1px solid var(--hair)}
+  .fbar{height:100%;border-radius:8px;width:0;transition:width 1s cubic-bezier(.22,1,.36,1);display:flex;align-items:center;justify-content:flex-end;padding-right:11px;color:#fff;font-weight:800;font-size:12px}
+  .fbar span{opacity:1}
+  .frow .fd{text-align:right;font-size:11.5px;font-weight:800}
+  .up{color:var(--pos)}.down{color:var(--neg)}
+
+  .donut-wrap{display:flex;align-items:center;gap:26px}
+  .dleg{display:flex;flex-direction:column;gap:14px}
+  .dl{display:flex;align-items:center;gap:11px;font-size:14px}.dl i{width:12px;height:12px;border-radius:4px}
+  .dl .dn{font-weight:800;font-variant-numeric:tabular-nums}.dl .dp{font-family:var(--mono);font-size:10px;color:var(--faint);margin-left:5px}
+  .dmeta{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.05em;margin-top:14px;border-top:1px solid var(--hair);padding-top:12px}.dmeta b{color:var(--ink);font-family:var(--sans)}
+
+  .heat{display:grid;gap:6px}
+  .hcell{aspect-ratio:1;border-radius:6px;opacity:0;transition:transform .15s,opacity .5s}
+  .hcell:hover{transform:scale(1.2)}
+  .hleg{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.06em;margin-top:12px}
+  .hleg .sc{display:flex;gap:3px}.hleg .sc i{width:14px;height:14px;border-radius:4px}
+  .strip{display:flex;gap:6px}
+  .hs{flex:1;height:58px;border-radius:9px;opacity:0;transition:opacity .5s,transform .15s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}
+  .hs:hover{transform:translateY(-3px)}.hs span{font-family:var(--mono);font-size:9px;color:#fff;font-weight:700}
+
+  .lolli{display:flex;flex-direction:column;gap:15px}
+  .lrow{display:grid;grid-template-columns:200px 1fr 80px;gap:14px;align-items:center}
+  .lrow .ln{font-size:13px;font-weight:600}
+  .ltrack{height:8px;background:var(--sink);border-radius:6px;overflow:hidden;border:1px solid var(--hair)}
+  .lfill{height:100%;border-radius:6px;width:0;transition:width 1s cubic-bezier(.22,1,.36,1)}
+  .lrow .lv{text-align:right;font-weight:800;font-size:13px;font-variant-numeric:tabular-nums}.lrow .lv small{color:var(--faint);font-family:var(--mono);font-size:10px}
+
+  .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .tile{padding:15px;border-radius:13px;background:var(--sink);border:1px solid var(--hair)}
+  .tile .tv{font-size:23px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .tile .tl{font-family:var(--mono);font-size:9px;color:var(--ink-3);letter-spacing:.05em;margin-top:5px}
+  .tile .tv.a{color:var(--accent)}
+
+  .radrow{display:flex;align-items:center;gap:20px}
+  .radrow .rt{font-size:30px;font-weight:800;letter-spacing:-.03em;color:var(--ink)}
+  .radrow .rn{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.5}
+
+  table{width:100%;border-collapse:collapse}
+  th{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;color:var(--faint);text-align:right;padding:0 0 12px;border-bottom:1px solid var(--hair)}
+  th:first-child{text-align:left}
+  td{font-size:13.5px;padding:13px 0;border-bottom:1px solid var(--hair);text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+  td:first-child{text-align:left}tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--sink)}
+  .qv2{font-weight:800}.qv2.g{color:#16A34A}.qv2.b{color:#2563EB}.qv2.p{color:#7C3AED}
+  td.mut{color:var(--ink-3);font-weight:600}.qz{color:var(--faint);font-weight:600}
+  tr.qtot td{border-top:2px solid var(--hair-2);border-bottom:none;font-weight:800;padding-top:14px}
+  .qnote{font-size:11.5px;color:var(--ink-3);margin-top:16px;line-height:1.7}.qnote b{color:var(--ink-2)}
+  .src-tag{display:inline-flex;align-items:center;gap:9px}.src-tag i{width:8px;height:8px;border-radius:3px}
+  .pos-t{color:var(--accent);font-weight:800}.zero-t{color:var(--faint)}
+  .rb{display:inline-block;padding:3px 9px;border-radius:7px;font-size:12px;font-weight:800}.rb.g{background:var(--soft);color:var(--accent)}.rb.z{background:#F0F1F5;color:var(--faint)}
+  .lbrow:hover td{cursor:pointer}.miniav{width:26px;height:26px;border-radius:8px;display:inline-grid;place-items:center;background:var(--ink);color:#fff;font-weight:800;font-size:10px;vertical-align:middle;margin-right:10px}
+  tr.act .miniav{background:var(--accent)}
+
+  .tl{position:relative;padding-left:22px}
+  .tl:before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--accent)}
+  .tli{position:relative;padding:0 0 20px 12px}.tli:last-child{padding-bottom:0}
+  .tli:before{content:"";position:absolute;left:-20px;top:3px;width:11px;height:11px;border-radius:50%;background:#fff;border:3px solid var(--accent)}
+  .tli .td{font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.05em;font-weight:700}
+  .tli .tn{font-size:13.5px;font-weight:700;margin-top:3px}.tli .tv{font-size:12px;color:var(--ink-2);margin-top:2px}
+
+  .di{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px dashed var(--hair);font-size:12.5px}.di:last-child{border:none}
+  .di .dd{color:var(--faint);font-family:var(--mono);font-size:9.5px;white-space:nowrap}.di .dn{font-weight:800}
+
+  .empty{text-align:center;padding:30px 20px}
+  .empty .ei{width:50px;height:50px;border-radius:15px;background:var(--soft);display:grid;place-items:center;margin:0 auto 12px;color:var(--accent)}
+  .empty h4{font-size:14px}.empty p{font-size:12px;color:var(--faint);margin-top:6px}
+  .soon{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)}
+
+  .qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .qt{padding:16px;border-radius:14px;background:#fff;border:1px solid var(--hair)}
+  .qt .qv{font-size:24px;font-weight:800;letter-spacing:-.02em}
+  .qt .ql{font-family:var(--mono);font-size:9px;color:var(--ink-3);letter-spacing:.05em;margin-top:6px}
+  .qt.soft{background:var(--sink);border-style:dashed}.qt.soft .qv{color:var(--faint);font-size:17px}
+
+  .tt{position:fixed;background:#262C42;color:#fff;font-size:11.5px;font-weight:700;padding:7px 11px;border-radius:9px;pointer-events:none;opacity:0;transition:opacity .1s;z-index:99;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .foot{text-align:center;color:var(--faint);font-family:var(--mono);font-size:10px;letter-spacing:.08em;margin-top:34px}
+  @media(max-width:1080px){.kgrid{grid-template-columns:repeat(2,1fr)}.g2,.hero-in,.qgrid{grid-template-columns:1fr}.nav{display:none}}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="logo"><span class="mk">V</span>VINI</div>
+    <nav class="nav"><a>Overview</a><a>Agents</a><a>Calls</a><a>Conversations</a><a>Campaigns</a><a class="on">Reports</a></nav>
+    <div class="grow"></div>
+    <div class="me">LN</div>
+  </div>
+  <div class="page">
+    <div class="head">
+      <div>
+        <div class="eyebrow">PERFORMANCE REPORT</div>
+        <h1>Agent performance</h1>
+        <div class="sub">ROI, pipeline &amp; quality by agent — what the AI earned you.</div>
+      </div>
+      <div class="ctrls">
+        <div class="aswitch" id="aswitch">
+          <button class="cb" id="aswitchBtn"><span class="pin" id="agPin">E</span><span><span class="an" id="agName">Emily</span><br><span class="ar" id="agRole">SALES INBOUND</span></span><svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div class="menu" id="agMenu"></div>
+        </div>
+        <div class="period" id="period"></div>
+      </div>
+    </div>
+    <div class="customdates" id="customDates" style="display:none">
+      <span class="cd-label">CUSTOM RANGE</span>
+      <input type="date" id="cdFrom" class="cd-input">
+      <span class="cd-sep">→</span>
+      <input type="date" id="cdTo" class="cd-input">
+    </div>
+    <div id="app"></div>
+    <div class="foot">VINI · AGENT PERFORMANCE · METRICS PRESERVED FROM SOURCE REPORT · INTERACTIVE DEMO</div>
+  </div>
+<div class="tt" id="tt"></div>
+
+<script>
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;}}
+const AGENTS={
+  emily:{name:'Emily',initials:'E',role:'Sales Inbound',seed:7,bookingRate:30,bookingDelta:9,per:200,
+    funnel:[{k:'Leads attempted',n:778,pct:100,delta:-31},{k:'Conversations',n:347,pct:45,delta:-18},{k:'Leads qualified',n:166,pct:48,delta:-23},{k:'Appointments booked',n:49,pct:30,delta:-32}],
+    calls:120,callsDelta:-44,mins:334,sms:3047,smsDelta:-7,turn:48,
+    breakdown:{during:0,after:501,conversations:347,qualified:166,transferred:34,callbacks:6},
+    queryRes:[['Vehicle availability',96,14,4,2,80],['Talk to sales dept',70,0,16,1,60],['Test drive booking',38,26,0,0,34],['Price / finance / trade-in',34,9,2,0,30],['Service — misrouted',30,0,8,0,24],['Other / general',33,0,4,0,20],['Wanted a live person',24,0,0,3,6],['No clear intent (hang-up / silence)',22,0,0,0,0]],
+    sources:[['Dream Nissan',201,549,28],['Conversational_AI',56,58,0],['Campaign',16,46,0],['ADF',9,25,2],['CarGurus',18,23,5],['Nissan Third Party Lead',9,22,0]],
+    speed:{time:'1m 05s',within5:88,instant:522,afterInstant:261,apptsBooked:28,instantToAppt:5},
+    appts:[['Danielle Werninger','2015 Chrysler Town & Country Touring · +1 913 602 2588','Tue, Jun 30 · 3:00 PM'],['Kelli Moore','2022 Toyota Highlander Hybrid XLE · +1 785 213 2947','Fri, Jul 3 · 10:00 AM'],['Ryan Gore','Vehicle TBD · +1 573 842 9672','Sat, Jul 25 · 2:00 PM']],
+    reply:[35,30,20,15],channel:{voice:120,sms:1628,voicePct:7,smsPct:93,smsSent:3047,talk:'6h',after:501},
+    quality:{answer:98,aht:'2m 50s',optOuts:215,transfer:94},
+    wins:[['Test Drive & Financing — 2018 Chevrolet Silverado LT','06-03'],['Test Drive & Financing — 2018 Chevrolet Silverado LT','06-03'],['Test Drive request — 2020 Chevrolet Malibu LT','05-31'],['Test Drive scheduled — 2025 Nissan Rogue','06-04']],
+    missed:[['Went to voicemail · call','1,147'],['Abandoned (silence) · call','—'],['SMS failed to deliver · sms','519']],
+    reasons:[['Sales',899,58,6],['Service',11,0,0],['Finance',11,0,0],['General Inquiry',3,0,0],['No Intent',2,0,0]]},
+  marcus:{name:'Marcus',initials:'M',role:'Sales Outbound',seed:19,bookingRate:22,bookingDelta:4,per:200,
+    funnel:[{k:'Leads attempted',n:1420,pct:100,delta:-12},{k:'Conversations',n:512,pct:36,delta:5},{k:'Leads qualified',n:214,pct:42,delta:-8},{k:'Appointments booked',n:62,pct:29,delta:3}],
+    calls:940,callsDelta:18,mins:1180,sms:1890,smsDelta:22,turn:42,
+    breakdown:{during:210,after:90,conversations:512,qualified:214,transferred:61,callbacks:14},
+    queryRes:[['Vehicle availability',130,20,8,4,104],['Talk to sales dept',95,0,24,2,78],['Test drive booking',60,30,2,1,52],['Price / finance / trade-in',70,12,6,3,55],['Not interested / opt-out',55,0,0,1,30],['Other / general',47,0,12,0,26],['Wanted a live person',30,0,9,3,12],['No clear intent (hang-up / silence)',25,0,0,0,0]],
+    campaigns:[['Aged-lead follow-up · Q2',210,4,3,45],['Aged-lead follow-up · May batch',189,1,6,78],['Aged-lead follow-up · Trade-ins',148,1,6,17],['Aged-lead follow-up · Service-due',73,1,4,11],['Aged-lead follow-up · Lease-end',159,0,12,24],['Aged-lead follow-up · Web forms',90,0,4,17],['Aged-lead follow-up · Unsold',120,2,5,20],['Aged-lead follow-up · CarGurus',64,1,2,9],['Aged-lead follow-up · Referral',45,0,3,6],['Aged-lead follow-up · Winback',38,0,1,4]],
+    sources:[['Dream Nissan',420,880,34],['Outbound Dialer',180,300,18],['Campaign',60,120,6],['ADF',30,70,3],['CarGurus',26,40,1],['Nissan Third Party',14,50,0]],
+    speed:{time:'2m 40s',within5:71,instant:640,afterInstant:120,apptsBooked:41,instantToAppt:6},
+    appts:[['Gregory Hale','2021 Nissan Frontier SV · +1 816 442 1180','Wed, Jul 1 · 11:30 AM'],['Priya Nair','2023 Nissan Altima SR · +1 913 771 6042','Thu, Jul 2 · 4:00 PM'],['Tom Becker','2019 Ford F-150 XLT · +1 660 233 9917','Mon, Jul 6 · 9:00 AM']],
+    reply:[28,34,22,16],channel:{voice:940,sms:950,voicePct:50,smsPct:50,smsSent:1890,talk:'19h',after:90},
+    quality:{answer:82,aht:'4m 10s',optOuts:96,transfer:88},
+    wins:[['Trade-in appraisal — 2020 Nissan Rogue SL','06-02'],['Test Drive — 2023 Nissan Altima SR','06-04'],['Financing pre-qual — 2021 Nissan Frontier','06-05'],['Callback converted — 2019 Ford F-150','06-01']],
+    missed:[['No answer · call','2,410'],['Bad number · call','188'],['SMS opt-out · sms','214']],
+    reasons:[['Sales',1610,58,4],['Finance',52,3,6],['Service',18,0,0],['General Inquiry',9,0,0],['No Intent',7,0,0]]},
+  sofia:{name:'Sofia',initials:'S',role:'Service Inbound',seed:33,bookingRate:41,bookingDelta:6,per:100,
+    funnel:[{k:'Leads attempted',n:402,pct:100,delta:-5},{k:'Conversations',n:298,pct:74,delta:9},{k:'Leads qualified',n:190,pct:64,delta:2},{k:'Appointments booked',n:73,pct:38,delta:7}],
+    calls:356,callsDelta:3,mins:690,sms:402,smsDelta:-2,turn:64,
+    breakdown:{during:300,after:56,conversations:298,qualified:190,transferred:12,callbacks:22},
+    queryRes:[['Service appointment booking',96,48,2,6,84],['Recall / warranty',40,13,1,4,33],['Parts availability',30,6,2,3,22],['Pricing / estimate',34,6,1,4,26],['Hours & location',22,0,0,0,22],['Talk to human / live agent',18,0,4,3,9],['Other / general',30,0,2,2,18],['No clear intent (hang-up / silence)',28,0,0,0,0]],
+    sources:[['Service CRM',210,300,52],['Dream Nissan',60,120,14],['Website Form',30,55,5],['Campaign',12,30,2],['Inbound Call',18,40,0]],
+    speed:{time:'0m 42s',within5:94,instant:320,afterInstant:44,apptsBooked:58,instantToAppt:12},
+    appts:[['Marisol Vega','2020 Nissan Rogue — oil & filter · +1 913 550 2201','Tue, Jun 30 · 8:30 AM'],['Dennis Park','2018 Nissan Altima — brake service · +1 816 990 4471','Wed, Jul 1 · 1:00 PM'],['Alicia Grant','2022 Nissan Kicks — recall · +1 785 662 0093','Thu, Jul 2 · 10:30 AM']],
+    reply:[52,28,12,8],channel:{voice:356,sms:210,voicePct:63,smsPct:37,smsSent:402,talk:'11h',after:56},
+    quality:{answer:96,aht:'3m 20s',optOuts:38,transfer:97},
+    wins:[['Recall service booked — 2022 Nissan Kicks','06-03'],['Maintenance plan — 2020 Nissan Rogue','06-04'],['Brake service — 2018 Nissan Altima','06-02'],['Warranty resolved same-day','06-05']],
+    missed:[['Voicemail after hours · call','210'],['Abandoned in queue · call','66'],['SMS failed · sms','48']],
+    reasons:[['Service',612,71,12],['Sales',40,2,5],['Finance',8,0,0],['General Inquiry',14,0,0],['No Intent',5,0,0]]}
+};
+const ORDER=['emily','marcus','sofia'];
+const SEGMENTS=[{key:'sin',label:'Sales Inbound',agent:'emily'},{key:'sout',label:'Sales Outbound',agent:'marcus'},{key:'svin',label:'Service Inbound',agent:'sofia'},{key:'svout',label:'Service Outbound',agent:null}];
+const AGSEG={emily:'sin',marcus:'sout',sofia:'svin'};
+const RANGE={'7D':.24,'14D':.5,'30D':1,'MTD':.68,'ALL':1.7};
+const RLABEL={'7D':'last 7 days','14D':'last 14 days','30D':'last 30 days','MTD':'month to date','ALL':'all time','Custom':'custom range'};
+const AC='#522EBF';
+let STATE={agent:'emily',segment:'sin',period:'30D',perMap:{},customFactor:1};
+const $=id=>document.getElementById(id);
+const fmt=n=>n>=1000?Math.round(n).toLocaleString():Math.round(n);
+const sc=(n,f)=>Math.max(0,Math.round(n*f));
+const getPer=a=>STATE.perMap[STATE.agent]!=null?STATE.perMap[STATE.agent]:a.per;
+const genSeries=(seed,pts,total,wob)=>{const r=rng(seed),raw=Array.from({length:pts},()=>0.4+r()*(wob||1)),s=raw.reduce((a,b)=>a+b,0)||1;return raw.map(v=>Math.max(0,Math.round(v/s*total)));};
+const tt=$('tt');window.showTT=(e,t)=>{tt.textContent=t;tt.style.opacity=1;tt.style.left=(e.clientX-tt.offsetWidth/2)+'px';tt.style.top=(e.clientY-tt.offsetHeight-12)+'px';};window.hideTT=()=>tt.style.opacity=0;
+const hexA=(a)=>AC+Math.round(a*255).toString(16).padStart(2,'0');
+
+function area(el,vals,h){if(!el)return;h=h||30;const w=el.clientWidth||220,mx=Math.max(...vals),mn=Math.min(...vals),X=i=>i*(w/(vals.length-1||1)),Y=v=>h-3-((v-mn)/(mx-mn||1))*(h-6);
+  const p=vals.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' '),id='a'+Math.random().toString(36).slice(2,7);
+  el.innerHTML=`<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${AC}" stop-opacity=".18"/><stop offset="1" stop-color="${AC}" stop-opacity="0"/></linearGradient></defs><path d="${p} L${w},${h} L0,${h} Z" fill="url(#${id})"/><path d="${p}" fill="none" stroke="${AC}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
+function donut(el,segs,size){if(!el)return;size=size||150;const sw=24,r=(size-sw)/2,c=2*Math.PI*r,cx=size/2,tot=segs.reduce((s,x)=>s+x.val,0)||1;let off=0,ring='';
+  segs.forEach(s=>{const len=s.val/tot*c;ring+=`<circle class="dseg" cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${sw}" stroke-dasharray="0 ${c}" data-da="${len} ${c-len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cx})" style="transition:stroke-dasharray .9s cubic-bezier(.22,1,.36,1)"/>`;off+=len;});
+  el.innerHTML=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="#F1F1F5" stroke-width="${sw}"/>${ring}<text x="${cx}" y="${cx-2}" text-anchor="middle" font-size="26" font-weight="800" fill="#262C42">${segs[0].big}</text><text x="${cx}" y="${cx+16}" text-anchor="middle" font-size="9" fill="#86839A" letter-spacing="1">${segs[0].sub}</text></svg>`;
+  requestAnimationFrame(()=>el.querySelectorAll('.dseg').forEach(c2=>c2.setAttribute('stroke-dasharray',c2.dataset.da)));}
+function radial(pct,size){size=size||120;const sw=size>90?11:7,r=(size-sw)/2,c=2*Math.PI*r,cx=size/2;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="#F1F1F5" stroke-width="${sw}"/><circle class="arc" cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${AC}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c}" transform="rotate(-90 ${cx} ${cx})" data-off="${c*(1-pct/100)}" style="transition:stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1)"/><text x="${cx}" y="${cx+1}" text-anchor="middle" dominant-baseline="middle" font-size="${size>90?26:13}" font-weight="800" fill="#262C42">${pct}%</text></svg>`;}
+function heatmap(el,vals,cols){if(!el)return;const mx=Math.max(...vals,1);el.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  el.innerHTML=vals.map((v,i)=>`<div class="hcell" style="background:${hexA(.1+.9*v/mx)};animation-delay:${i*13}ms" onmousemove="showTT(event,'Day ${i+1}: ${v}')" onmouseleave="hideTT()"></div>`).join('');
+  requestAnimationFrame(()=>el.querySelectorAll('.hcell').forEach(c=>c.style.opacity=1));}
+function strip(el,data){if(!el)return;const mx=Math.max(...data.map(d=>d.v),1);
+  el.innerHTML=data.map((d,i)=>`<div class="hs" style="background:${hexA(Math.max(.22,d.v/mx))};animation-delay:${i*20}ms" onmousemove="showTT(event,'${d.label}: ${d.v}')" onmouseleave="hideTT()"><span>${d.label}</span></div>`).join('');
+  requestAnimationFrame(()=>el.querySelectorAll('.hs').forEach(c=>c.style.opacity=1));}
+function todChart(el,data){if(!el)return;const w=el.clientWidth||500,h=142,pl=8,pr=8,pb=22,pt=42,mx=Math.max(...data.map(d=>d.v),1);
+  const X=i=>pl+i*((w-pl-pr)/(data.length-1)),Y=v=>pt+(1-v/mx)*(h-pt-pb);
+  const pk=data.reduce((m,d,i,a)=>d.v>a[m].v?i:m,0);
+  let pts=data.map((d,i)=>[X(i),Y(d.v)]),line=`M${pts[0][0]},${pts[0][1]}`;
+  for(let i=0;i<pts.length-1;i++){const cx=(pts[i][0]+pts[i+1][0])/2;line+=` C${cx},${pts[i][1]} ${cx},${pts[i+1][1]} ${pts[i+1][0]},${pts[i+1][1]}`;}
+  const id='tg'+Math.random().toString(36).slice(2,6);
+  let ticks='';data.forEach((d,i)=>{if(i%2===0)ticks+=`<text x="${X(i)}" y="${h-5}" text-anchor="middle" font-size="9" fill="#AAA8BD" font-family="var(--mono)">${d.label}</text>`;});
+  let dots='';data.forEach((d,i)=>dots+=`<circle cx="${X(i)}" cy="${Y(d.v)}" r="3" fill="#fff" stroke="${AC}" stroke-width="1.5" onmousemove="showTT(event,'${d.label}: ${d.v}')" onmouseleave="hideTT()" style="cursor:pointer"/>`);
+  el.innerHTML=`<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${AC}" stop-opacity=".26"/><stop offset="1" stop-color="${AC}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${line} L${X(data.length-1)},${h-pb} L${pl},${h-pb} Z" fill="url(#${id})"/>
+    <path d="${line}" fill="none" stroke="${AC}" stroke-width="2.4" stroke-linecap="round"/>
+    ${ticks}${dots}
+    <circle cx="${X(pk)}" cy="${Y(data[pk].v)}" r="4.5" fill="${AC}"/>
+    <rect x="${Math.min(w-62,Math.max(2,X(pk)-30))}" y="${Y(data[pk].v)-30}" width="60" height="18" rx="9" fill="${AC}"/>
+    <text x="${Math.min(w-32,Math.max(32,X(pk)))}" y="${Y(data[pk].v)-20.5}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700" fill="#fff" font-family="var(--mono)">PEAK ${data[pk].label}</text>
+    </svg><style>@keyframes draw2{to{stroke-dashoffset:0}}@keyframes fadein{to{opacity:1}}</style>`;}
+function weekChart(el,data){if(!el)return;const w=el.clientWidth||500,h=130,pl=6,pr=6,pb=20,pt=16,mx=Math.max(...data.map(d=>d.v),1),n=data.length,gap=14,bw=(w-pl-pr-(n-1)*gap)/n;
+  const X=i=>pl+i*(bw+gap),Y=v=>pt+(1-v/mx)*(h-pt-pb),BY=h-pb,pk=data.reduce((m,d,i,a)=>d.v>a[m].v?i:m,0);
+  let bars='',line='',dots='';
+  data.forEach((d,i)=>{const bh=Math.max(3,(d.v/mx)*(h-pt-pb)),x=X(i),y=Y(d.v),cx=x+bw/2;
+    bars+=`<rect class="wbar" x="${x}" y="${BY}" width="${bw}" height="0" rx="5" fill="${i===pk?AC:hexA(.24)}" data-y="${y.toFixed(1)}" data-h="${bh.toFixed(1)}" style="transition:y .8s cubic-bezier(.22,1,.36,1) ${i*.05}s,height .8s cubic-bezier(.22,1,.36,1) ${i*.05}s" onmousemove="showTT(event,'${d.label}: ${d.v}')" onmouseleave="hideTT()"/>`;
+    bars+=`<text x="${cx}" y="${h-5}" text-anchor="middle" font-size="9" fill="#AAA8BD" font-family="var(--mono)">${d.label}</text>`;
+    line+=(i?'L':'M')+cx.toFixed(1)+','+y.toFixed(1);dots+=`<circle cx="${cx.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="#fff" stroke="${AC}" stroke-width="1.5"/>`;});
+  el.innerHTML=`<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}">${bars}<path d="${line}" fill="none" stroke="${AC}" stroke-width="1.6" opacity=".5"/>${dots}</svg>`;
+  el.querySelectorAll('.wbar').forEach(r=>{r.setAttribute('y',r.dataset.y);r.setAttribute('height',r.dataset.h);});}
+function countUp(root){(root||document).querySelectorAll('.cnt').forEach(el=>{const t=+el.dataset.c;if(!isNaN(t))el.textContent=fmt(t);});}
+
+/* ---- live animation controller (sparklines + heatmap snake) ---- */
+let ANIM={raf:null,t:0,last:0,sparks:[],snake:null};
+function stopAnim(){if(ANIM.raf)cancelAnimationFrame(ANIM.raf);ANIM.raf=null;ANIM.sparks=[];ANIM.snake=null;}
+function initSpark(id,seed){const el=$(id);if(!el)return;const w=el.clientWidth||220,h=26;
+  el.innerHTML=`<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><defs><linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${AC}" stop-opacity=".16"/><stop offset="1" stop-color="${AC}" stop-opacity="0"/></linearGradient></defs><path class="fill" fill="url(#${id}g)"/><path class="line" fill="none" stroke="${AC}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle class="head" r="2.6" fill="${AC}"/></svg>`;
+  const b=genSeries(seed,44,100,1.7),mx=Math.max(...b,1);let ser=b.map(v=>v/mx);ser=ser.concat(ser.slice().reverse());
+  ANIM.sparks.push({w,h,ser,ph:seed%9,fill:el.querySelector('.fill'),line:el.querySelector('.line'),head:el.querySelector('.head')});}
+function updateSpark(s,t){const N=22,w=s.w,h=s.h,step=w/(N-1),L=s.ser.length,bi=t*1.8+s.ph*4;let d='',hx=0,hy=0;
+  for(let i=0;i<N;i++){const idx=bi+i,f0=Math.floor(idx),fr=idx-f0,va=s.ser[((f0%L)+L)%L],vb=s.ser[(((f0+1)%L)+L)%L],v=va+(vb-va)*fr,x=i*step,y=h-3-Math.max(0,Math.min(1,v))*(h-6);d+=(i?'L':'M')+x.toFixed(1)+','+y.toFixed(1);if(i===N-1){hx=x;hy=y;}}
+  s.line.setAttribute('d',d);s.fill.setAttribute('d',d+`L${w},${h}L0,${h}Z`);s.head.setAttribute('cx',hx);s.head.setAttribute('cy',hy);}
+function initSnake(cols){const el=$('heat');if(!el)return;const cells=[...el.querySelectorAll('.hcell')];if(!cells.length)return;const rows=Math.ceil(cells.length/cols),order=[];
+  for(let r=0;r<rows;r++){const rc=[];for(let c=0;c<cols;c++){const idx=r*cols+c;if(idx<cells.length)rc.push(idx);}if(r%2)rc.reverse();order.push(...rc);}
+  ANIM.snake={cells,order,pos:0,trail:[]};}
+function updateSnake(dt){const s=ANIM.snake;if(!s)return;s.pos+=dt/320;if(s.pos>=s.order.length)s.pos-=s.order.length;const head=Math.floor(s.pos),T=5,now=[];
+  for(let k=0;k<T;k++)now.push(s.order[(head-k+s.order.length)%s.order.length]);
+  s.trail.forEach(ci=>{if(now.indexOf(ci)<0){const el=s.cells[ci];el.classList.remove('snk');el.style.boxShadow='';}});
+  now.forEach((ci,k)=>{const el=s.cells[ci];if(k===0)el.classList.add('snk');el.style.boxShadow=`0 0 0 ${k===0?2:1.5}px ${hexA(Math.max(.12,1-k/T))}`;});
+  s.trail=now;}
+function startAnim(){if(ANIM.raf)cancelAnimationFrame(ANIM.raf);ANIM.last=0;const loop=ts=>{if(!ANIM.last)ANIM.last=ts;const dt=Math.min(48,ts-ANIM.last);ANIM.last=ts;ANIM.t+=dt/1000;ANIM.sparks.forEach(s=>updateSpark(s,ANIM.t));updateSnake(dt);ANIM.raf=requestAnimationFrame(loop);};ANIM.raf=requestAnimationFrame(loop);}
+let SN=0;
+function secH(icon,title,note){SN++;const n=String(SN).padStart(2,'0');return `<div class="sec-h"><span class="si"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${icon}"/></svg></span><h2><span class="snum">${n}</span>${title}</h2><span class="sn">${note}</span></div>`;}
+function aiLine(a,f){const ap=sc(a.funnel[3].n,f);return `${a.name} converted <b>${a.bookingRate}%</b> of qualified leads into <b>${ap} appointments</b> and captured <b>${fmt(sc(a.breakdown.after,f))}</b> conversations after hours.`;}
+
+function render(){
+  SN=0;
+  const a=AGENTS[STATE.agent],f=(STATE.period==='Custom'?(STATE.customFactor||1):RANGE[STATE.period]),ap=sc(a.funnel[3].n,f),per=getPer(a),val=ap*per,ann=val*12;
+  const I={calls:'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z',sms:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',moon:'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z',bolt:'M13 2L3 14h9l-1 8 10-12h-9l1-8z',pipe:'M3 5h18M6 12h12M10 19h4',chan:'M4 4h16M4 12h16M4 20h10',qual:'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',res:'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM12 6v6l4 2',src:'M3 3v18h18M7 14l4-4 3 3 5-6',cal:'M3 4h18v18H3zM16 2v4M8 2v4M3 10h18',team:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 21a7 7 0 0 1 14 0M17 11a3 3 0 0 0 0-6M22 21a6 6 0 0 0-4-5.7'};
+  let h='';
+  h+=`<div class="segcap">PERFORMANCE BY SEGMENT · ${RLABEL[STATE.period].toUpperCase()}</div>`;
+  const segTab=(seg)=>{if(!seg.agent)return `<div class="segtab empty"><div class="stl">${seg.label}</div><div class="strow"><span class="add">+ Add</span></div><div class="stv">SEE WHAT IT DOES</div></div>`;const g=AGENTS[seg.agent];return `<div class="segtab ${seg.key===STATE.segment?'on':''}" data-k="${seg.key}"><div class="stl">${seg.label}</div><div class="strow"><span class="stbig">${fmt(sc(g.funnel[0].n,f))}</span><span class="stpc">${g.bookingRate}%</span></div><div class="stv">LEADS · BOOKING RATE</div></div>`;};
+  const salesSegs=SEGMENTS.filter(s=>/sales/i.test(s.label)),svcSegs=SEGMENTS.filter(s=>/service/i.test(s.label));
+  h+=`<div class="segwrap">
+    <div class="seggroup sales"><div class="seggroup-h"><span class="seg-dot" style="background:#522EBF"></span>Sales</div><div class="seggrid">${salesSegs.map(segTab).join('')}</div></div>
+    <div class="seggroup service"><div class="seggroup-h"><span class="seg-dot" style="background:#0891B2"></span>Service</div><div class="seggrid">${svcSegs.map(segTab).join('')}</div></div>
+  </div>`;
+  h+=`<div class="hero"><div class="hero-in">
+    <div class="hero-left"><div class="hero-cap">VALUE CREATED · ${RLABEL[STATE.period].toUpperCase()}</div>
+      <div class="hero-big">$<span class="cnt" data-c="${val}" id="hval">0</span></div>
+      <div class="hero-run"><span class="hero-trend">▲ ${a.bookingDelta}% booking rate</span><span class="hero-sub">≈ $<span id="annVal">${fmt(ann)}</span> / yr run-rate</span></div>
+      <div class="hvspark" id="hvspark"></div><div class="hero-cum">CUMULATIVE VALUE ACROSS THE PERIOD</div></div>
+    <div class="builder">
+      <div class="bcell"><div class="bn"><span class="cnt" data-c="${ap}">0</span></div><div class="bl">APPOINTMENTS</div></div>
+      <div class="bop">×</div>
+      <div class="bcell edit"><div class="binput">$<input id="perInput" type="number" value="${per}" min="0" step="10"></div><div class="bl">VALUE / APPT · EDIT</div></div>
+      <div class="bop">=</div>
+      <div class="bcell"><div class="bn" id="eqVal">$${fmt(val)}</div><div class="bl">TOTAL VALUE</div></div>
+    </div></div></div>`;
+  h+=secH(I.pipe,'Conversion pipeline',STATE.period+' · '+a.bookingRate+'% END-TO-END');
+  h+=`<div class="card"><div class="funnel" id="funnel">${a.funnel.map((r,i)=>`<div class="frow" data-i="${i}"><div><div class="fn"><span class="cnt" data-c="${sc(r.n,f)}">0</span></div><div class="fl">${r.k}</div></div><div class="ftrack"><div class="fbar" data-w="${r.pct}" style="background:${hexA(1-i*.18)}"><span>${r.pct}%</span></div></div><div class="fd ${r.delta<0?'down':'up'}">${r.delta<0?'▼':'▲'} ${Math.abs(r.delta)}%</div></div>`).join('')}</div><div class="fdetail" id="fdetail"></div></div>`;
+  h+=`<div class="kgrid">
+    ${kpi(I.moon,'After-hours captured',fmt(sc(a.breakdown.after,f)),"off the clock",0,'kp1',[['During hours',fmt(sc(a.breakdown.during,f))],['After hours',fmt(sc(a.breakdown.after,f))],['Callbacks',fmt(sc(a.breakdown.callbacks,f))]])}
+    ${kpi(I.bolt,'Speed to lead',a.speed.time,a.speed.within5+'% within 5 min',0,'kp2',[['Touched instantly',fmt(sc(a.speed.instant,f))],['After-hours instant',fmt(sc(a.speed.afterInstant,f))],['Instant → appointment',a.speed.instantToAppt+'%']])}
+    ${kpi(I.calls,'Total calls',fmt(sc(a.calls,f)),sc(a.mins,f)+' mins talk',a.callsDelta,'kp3',[['Talk minutes',fmt(sc(a.mins,f))],['Conversations',fmt(sc(a.breakdown.conversations,f))],['Transferred',fmt(sc(a.breakdown.transferred,f))]])}
+    ${kpi(I.sms,'Total SMS',fmt(sc(a.sms,f)),a.channel.smsPct+'% of contacts',a.smsDelta,'kp4',[['SMS sent',fmt(sc(a.channel.smsSent,f))],['Same-day reply',a.reply[0]+'%'],['Opt-outs',fmt(sc(a.quality.optOuts,f))]])}
+  </div>`;
+  h+=`<div class="aicard"><span class="aitag">✦ VINI AI</span><div class="aitxt">${aiLine(a,f)}</div></div>`;
+  h+=secH(I.chan,'Coverage &amp; activity','WORK DONE');
+  h+=`<div class="grid g2">
+    <div class="card"><h3>Channel mix</h3><div class="csub">SHARE OF CONTACTS</div><div class="donut-wrap"><div id="donut"></div><div class="dleg">
+      <div class="dl"><i style="background:${AC}"></i>Voice <span class="dn">${fmt(sc(a.channel.voice,f))}</span><span class="dp">${a.channel.voicePct}%</span></div>
+      <div class="dl"><i style="background:#C4C2D1"></i>SMS <span class="dn">${fmt(sc(a.channel.sms,f))}</span><span class="dp">${a.channel.smsPct}%</span></div>
+      <div class="dmeta">SMS sent <b>${fmt(sc(a.channel.smsSent,f))}</b> · talk <b>${a.channel.talk}</b></div></div></div></div>
+    <div class="card"><h3>Daily intensity</h3><div class="csub">TOUCHED LEADS PER DAY</div><div class="heat" id="heat"></div><div class="hleg">LESS <span class="sc" id="hscale"></span> MORE</div></div>
+  </div>`;
+  h+=`<div class="grid g2" style="margin-top:16px">
+    <div class="card"><h3>Time-of-day</h3><div class="csub">BUSINESS HOURS</div><div class="strip" id="tod"></div></div>
+    <div class="card"><h3>7-day momentum</h3><div class="csub">CALLS HANDLED</div><div id="week" style="height:120px"></div></div>
+  </div>`;
+  h+=secH(I.bolt,'Captured demand','WON BACK');
+  h+=`<div class="grid g2">
+    <div class="card"><div class="radrow"><div>${radial(a.speed.within5,120)}</div><div><div class="rt">${a.speed.time}</div><div class="rn"><b style="color:var(--ink)">${a.speed.within5}%</b> of new leads contacted within 5 min — <b style="color:var(--ink)">${fmt(sc(a.breakdown.after,f))}</b> after hours.</div></div></div>
+      <div class="tiles" style="margin-top:18px">
+        <div class="tile"><div class="tv a"><span class="cnt" data-c="${sc(a.speed.instant,f)}">0</span></div><div class="tl">ENGAGED INSTANTLY</div></div>
+        <div class="tile"><div class="tv"><span class="cnt" data-c="${sc(a.speed.afterInstant,f)}">0</span></div><div class="tl">AFTER-HOURS INSTANT</div></div>
+        <div class="tile"><div class="tv a"><span class="cnt" data-c="${sc(a.speed.apptsBooked,f)}">0</span></div><div class="tl">APPTS FROM INSTANT</div></div>
+        <div class="tile"><div class="tv">${a.speed.instantToAppt}%</div><div class="tl">INSTANT → APPT</div></div>
+      </div></div>
+    <div class="card"><h3>Recoverable — demand that slipped</h3><div class="csub">OPPORTUNITY TO CAPTURE NEXT</div>
+      ${a.missed.map(([t,n])=>`<div class="di"><span>${t.replace(/·(.*)$/,'· <span style="color:var(--faint)">$1</span>')}</span><span class="dn">${n}</span></div>`).join('')}
+      <h3 style="margin-top:20px">Multi-day reply</h3><div class="csub">${a.reply[0]}% SAME-DAY</div><div class="strip" id="reply"></div></div>
+  </div>`;
+  h+=secH(I.qual,'Conversation quality','TRUST');
+  h+=`<div class="qgrid">
+    <div class="qt qr">${radial(a.quality.answer,60)}<span class="ql">ANSWER<br>RATE</span></div>
+    <div class="qt qr">${radial(a.quality.transfer,60)}<span class="ql">TRANSFER<br>SUCCESS</span></div>
+    <div class="qt"><div class="qv">${a.quality.aht}</div><div class="ql">AVG HANDLE TIME</div></div>
+    <div class="qt"><div class="qv">${fmt(sc(a.quality.optOuts,f))}</div><div class="ql">OPT-OUTS</div></div>
+    <div class="qt soft"><div class="qv">CSAT</div><div class="ql"><span class="soon">COMING SOON</span></div></div>
+    <div class="qt soft"><div class="qv">Sentiment</div><div class="ql"><span class="soon">COMING SOON</span></div></div>
+  </div>`;
+  h+=secH(I.res,'Query resolution','AUTONOMY');
+  const qTC=a.queryRes.reduce((s,r)=>s+r[1],0)||1, qSum=i=>a.queryRes.reduce((s,r)=>s+r[i],0), qCell=(v,c)=>v>0?`<span class="qv2 ${c}">${v}</span>`:'<span class="qz">—</span>';
+  const inOut=/outbound/i.test(a.role)?'OUTBOUND':'INBOUND';
+  h+=`<div class="card"><div class="csub" style="margin-bottom:16px">${inOut} · CALL INTENTS &amp; HOW ${a.name.toUpperCase()} HANDLES THEM</div>
+    <table><thead><tr><th style="text-align:left">What the customer wanted</th><th>Convos</th><th>Share</th><th>AI-booked</th><th>Transferred</th><th>Callback</th><th>Resolved</th></tr></thead>
+    <tbody>${a.queryRes.map(([n,cv,bk,tr,cb,rs])=>`<tr><td>${n}</td><td>${cv}</td><td class="mut">${Math.round(cv/qTC*100)}%</td><td>${qCell(bk,'g')}</td><td>${qCell(tr,'b')}</td><td>${qCell(cb,'p')}</td><td><b>${rs>0?rs:'—'}</b></td></tr>`).join('')}
+    <tr class="qtot"><td>Real conversations</td><td>${qTC}</td><td class="mut">100%</td><td><span class="qv2 g">${qSum(2)}</span></td><td><span class="qv2 b">${qSum(3)}</span></td><td><span class="qv2 p">${qSum(4)}</span></td><td><b>${qSum(5)}</b></td></tr></tbody></table>
+    <div class="qnote">Intent &amp; outcome mix of the ${qTC} conversations — totals match the funnel. <b>Transferred</b> = completed hand-offs to a human. <b>Resolved</b> = any successful handling (booked + transferred + callback + question answered), capped at each intent's conversations.</div></div>`;
+  if(/outbound/i.test(a.role) && a.campaigns && a.campaigns.length){
+    const cWarm=a.campaigns.reduce((s,c)=>s+c[3],0);
+    h+=secH(I.chan,'Active campaigns','WHAT THIS AGENT IS WORKING ON RIGHT NOW');
+    h+=`<div class="card"><div class="csub" style="margin-bottom:16px"><b style="color:var(--accent);font-size:21px;font-weight:800">${cWarm}</b> warm leads engaged across ${a.campaigns.length} campaigns</div>
+      <table><thead><tr><th style="text-align:left">Campaign</th><th>Enrolled</th><th>Appts</th><th>Appt rate</th><th>Warm</th><th>Opt-outs</th></tr></thead>
+      <tbody>${a.campaigns.map(([n,en,ap2,wm,oo])=>`<tr><td>${n}</td><td>${fmt(en)}</td><td>${ap2}</td><td><span class="qv2 g">${en?(ap2/en*100).toFixed(1):0}%</span></td><td>${wm}</td><td class="mut">${oo}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  h+=secH(I.src,'Sources &amp; reasons','ATTRIBUTION');
+  const srcMax=Math.max(...a.sources.map(s=>s[2]),1),srcSorted=a.sources.slice().sort((x,y)=>y[3]-x[3]||y[2]-x[2]);
+  const totCalls=a.reasons.reduce((s,r)=>s+r[1],0)||1;
+  h+=`<div class="grid g2">
+    <div class="card"><h3>Leads by source</h3><div class="csub">RANKED BY BOOKED APPOINTMENTS · BAR = LEAD VOLUME</div>
+      <div class="srclist">${srcSorted.map(([n,ii,t,b],i)=>`<div class="srcrow"><div class="sri">${i+1}</div><div class="srn">${n}<span class="srs">${fmt(sc(ii,f))} INTERACTED · ${fmt(sc(t,f))} LEADS</span></div><div class="srbar"><div class="lfill" data-w="${Math.max(3,t/srcMax*100)}" style="background:${b?AC:'#C4C2D1'}"></div></div><div class="srb ${b?'':'z'}">${sc(b,f)}<span>APPTS</span></div></div>`).join('')}</div></div>
+    <div class="card"><h3>Calls by reason</h3><div class="csub">SHARE OF ${fmt(sc(totCalls,f))} CALLS · BOOK RATE PER REASON</div>
+      <div class="stkbar">${a.reasons.map(([r,c],i)=>`<div class="stkseg" data-w="${c/totCalls*100}" style="background:${hexA(1-i*.17)}" onmousemove="showTT(event,'${r}: ${fmt(sc(c,f))} calls')" onmouseleave="hideTT()"></div>`).join('')}</div>
+      <div class="rlist"><div class="rhead"><span>REASON</span><span>CALLS</span><span>BOOKED</span><span>RATE</span></div>${a.reasons.map(([r,c,b,rate],i)=>`<div class="rrow"><span class="rn2"><i class="rdot" style="background:${hexA(1-i*.17)}"></i>${r}</span><span class="num">${fmt(sc(c,f))}</span><span class="num">${sc(b,f)}</span><span class="num"><span class="rb ${rate?'g':'z'}">${rate}%</span></span></div>`).join('')}</div></div>
+  </div>`;
+  h+=secH(I.cal,'Appointments &amp; follow-ups','BOOKED CALENDAR');
+  h+=`<div class="grid g2">
+    <div class="card"><h3>Upcoming appointments</h3><div class="csub">CUSTOMER · VEHICLE</div><div class="tl">${a.appts.map(([n,v,d])=>`<div class="tli"><div class="td">${d.toUpperCase()}</div><div class="tn">${n}</div><div class="tv">${v}</div></div>`).join('')}</div></div>
+    <div class="card"><h3>Priority follow-ups</h3><div class="csub">FLAGGED CALLBACKS</div><div class="empty"><div class="ei"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1l-2.2 2.2Z"/></svg></div><h4>No callbacks flagged</h4><p>They'll appear here when the agent flags one.</p></div>
+      <h3 style="margin-top:8px">Highlights</h3><div class="csub">BEST BOOKED CALLS</div>${a.wins.slice(0,3).map(([t,d])=>`<div class="di"><span>${t}</span><span class="dd">${d}</span></div>`).join('')}</div>
+  </div>`;
+  h+=secH(I.team,'Team leaderboard','VALUE ACROSS AGENTS');
+  const rows=ORDER.map(k=>{const g=AGENTS[k];const gap=sc(g.funnel[3].n,f);const pr=STATE.perMap[k]!=null?STATE.perMap[k]:g.per;return{k,g,leads:sc(g.funnel[0].n,f),ap:gap,value:gap*pr};}).sort((x,y)=>y.value-x.value);
+  const maxV=Math.max(...rows.map(r=>r.value),1),TC={emily:'#522EBF',marcus:'#6843CC',sofia:'#8460D9'},BPOS=[[122,104],[58,66],[76,148]];
+  let TBUB='';rows.forEach((r,i)=>{const rad=30+26*(r.value/maxV),p=BPOS[i]||[112,104],col=TC[r.k]||'#6843CC',lab='$'+(r.value>=1000?(r.value/1000).toFixed(1)+'k':r.value);TBUB+=`<circle cx="${p[0]}" cy="${p[1]}" r="${rad.toFixed(1)}" fill="${col}" opacity="${i===0?.96:.88}"/><text x="${p[0]}" y="${p[1]+1}" text-anchor="middle" dominant-baseline="middle" font-size="${Math.max(12,rad*0.34).toFixed(0)}" font-weight="800" fill="#fff">${lab}</text>`;});
+  h+=`<div class="card"><div class="teamgrid"><div class="bubbles"><svg viewBox="0 0 210 200">${TBUB}</svg></div><div class="teamlist">${rows.map(r=>{const pct=Math.round(r.value/maxV*100),col=TC[r.k]||'#6843CC';return `<div class="tlrow lbrow ${r.k===STATE.agent?'on':''}" data-k="${r.k}"><div class="tlav" style="background:${col}">${r.g.initials}</div><div class="tlmid"><div class="tlname">${r.g.name} <span class="tlsub">${r.g.role.toUpperCase()}</span></div><div class="tlbar"><i style="width:${pct}%;background:${col}"></i></div></div><div class="tlval">$${fmt(r.value)}<span>${r.ap} APPTS · ${r.g.bookingRate}%</span></div></div>`;}).join('')}</div></div></div>`;
+  $('app').innerHTML=h;
+  post(a,f);
+}
+function kpi(icon,label,val,sub,delta,sparkId,more){more=more||[];return `<div class="kpi"><div class="ki"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${icon}"/></svg></div><div class="kl">${label.toUpperCase()}</div><div class="kv">${val}</div><div class="kf"><span class="ks">${sub.toUpperCase()}</span>${delta?`<span class="dl-chip ${delta<0?'down':'up'}">${delta<0?'▼':'▲'} ${Math.abs(delta)}%</span>`:''}</div>${more.length?`<div class="kpi-more">${more.map(([l,v])=>`<div class="mr"><span class="ml2">${l}</span><span class="mv2">${v}</span></div>`).join('')}</div>`:''}</div>`;}
+
+function post(a,f){
+  countUp($('app'));
+  requestAnimationFrame(()=>{document.querySelectorAll('.arc').forEach(c=>c.style.strokeDashoffset=c.dataset.off);document.querySelectorAll('.lfill').forEach(i=>i.style.width=i.dataset.w+'%');document.querySelectorAll('.stkseg').forEach(s=>s.style.width=s.dataset.w+'%');});
+  document.querySelectorAll('.fbar').forEach(b=>{b.style.width=b.dataset.w+'%';b.classList.add('show');});
+  stopAnim();
+  donut($('donut'),[{val:a.channel.voicePct,color:AC,big:a.channel.smsPct+'%',sub:'SMS'},{val:a.channel.smsPct,color:'#C4C2D1'}],150);
+  const pts=Math.max(7,Math.round(30*f)),cols=pts>20?15:pts>10?10:7;heatmap($('heat'),genSeries(a.seed+31,pts,sc(a.funnel[0].n,f)),cols);
+  const sl=$('hscale');if(sl)sl.innerHTML=[.1,.35,.6,.85,1].map(x=>`<i style="background:${hexA(x)}"></i>`).join('');
+  todChart($('tod'),genSeries(a.seed+9,12,100).map((v,i)=>({label:['7a','8a','9a','10a','11a','12p','1p','2p','3p','4p','5p','6p'][i],v})));
+  strip($('reply'),a.reply.map((v,i)=>({label:['Same day','Day 1','Day 2','Day 3+'][i],v})));
+  weekChart($('week'),genSeries(a.seed+25,7,sc(a.calls,f)).map((v,i)=>({label:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],v})));
+  (function(){const el=$('hvspark');if(!el)return;const b=genSeries(a.seed+50,24,100,1);let s=0,cum=b.map(v=>s+=v);area(el,cum,44);})();
+  const inp=$('perInput');if(inp)inp.oninput=()=>{const v=Math.max(0,Math.round(+inp.value||0));STATE.perMap[STATE.agent]=v;const ap=sc(a.funnel[3].n,f),val=ap*v;const iv=$('hval');iv.dataset.done=1;iv.textContent=fmt(val);$('eqVal').textContent='$'+fmt(val);$('annVal').textContent=fmt(val*12);};
+  const fd=$('fdetail');document.querySelectorAll('#funnel .frow').forEach(r=>r.onclick=()=>{const i=+r.dataset.i;document.querySelectorAll('#funnel .frow').forEach(x=>x.classList.toggle('sel',x===r));const R=a.funnel[i],prev=i?a.funnel[i-1]:null,n=sc(R.n,f);fd.innerHTML=i===0?`<span class="k">Top of funnel</span> — <b>${fmt(n)}</b> unique leads entered · trend <b>${R.delta}%</b> vs prior period`:`<span class="k">${R.k}</span> — <b>${fmt(n)}</b> of <b>${fmt(sc(prev.n,f))}</b> ${prev.k.toLowerCase()} · <b>${R.pct}%</b> step conversion · <b>${fmt(Math.max(0,sc(prev.n,f)-n))}</b> dropped off · trend <b>${R.delta}%</b>`;fd.classList.add('show');});
+  document.querySelectorAll('.segtab[data-k]').forEach(t=>t.onclick=()=>{const seg=SEGMENTS.find(s=>s.key===t.dataset.k);if(!seg||!seg.agent)return;STATE.segment=seg.key;STATE.agent=seg.agent;syncSwitch();render();window.scrollTo({top:0,behavior:'smooth'});});
+  document.querySelectorAll('.lbrow').forEach(tr=>tr.onclick=()=>{STATE.agent=tr.dataset.k;STATE.segment=AGSEG[tr.dataset.k]||STATE.segment;syncSwitch();render();window.scrollTo({top:0,behavior:'smooth'});});
+}
+function buildPeriod(){const pills=[...Object.keys(RANGE),'Custom'];$('period').innerHTML=pills.map(p=>`<button class="${p===STATE.period?'on':''}" data-p="${p}">${p}</button>`).join('');
+  document.querySelectorAll('#period button').forEach(b=>b.onclick=()=>{STATE.period=b.dataset.p;toggleCustomDates();buildPeriod();render();});}
+function toggleCustomDates(){const el=$('customDates');if(el)el.style.display=STATE.period==='Custom'?'flex':'none';}
+function buildMenu(){$('agMenu').innerHTML=ORDER.map(k=>{const a=AGENTS[k];return `<button class="mo ${k===STATE.agent?'sel':''}" data-k="${k}"><span class="mi">${a.initials}</span><span><span class="mn">${a.name}</span><br><span class="mr">${a.role.toUpperCase()}</span></span><span class="mrate">${a.bookingRate}%</span></button>`;}).join('');
+  document.querySelectorAll('#agMenu .mo').forEach(b=>b.onclick=()=>{STATE.agent=b.dataset.k;STATE.segment=AGSEG[b.dataset.k]||STATE.segment;$('aswitch').classList.remove('open');syncSwitch();render();});}
+function syncSwitch(){const a=AGENTS[STATE.agent];$('agPin').textContent=a.initials;$('agName').textContent=a.name;$('agRole').textContent=a.role.toUpperCase();buildMenu();}
+$('aswitchBtn').onclick=e=>{e.stopPropagation();$('aswitch').classList.toggle('open');};
+document.addEventListener('click',()=>$('aswitch').classList.remove('open'));
+$('agMenu').onclick=e=>e.stopPropagation();
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,160);});
+['cdFrom','cdTo'].forEach(id=>{const el=$(id);if(el)el.onchange=()=>{const fr=$('cdFrom').value,to=$('cdTo').value;if(fr&&to){const d=(new Date(to)-new Date(fr))/86400000+1;STATE.customFactor=Math.max(.1,Math.min(3,d/30));}render();};});
+buildPeriod();syncSwitch();render();
+</script>
+</body>
+</html>
