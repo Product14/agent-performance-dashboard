@@ -502,14 +502,13 @@ function render(){
   h+=secH(I.pipe,'Conversion pipeline',STATE.period+' · '+a.bookingRate+'% END-TO-END');
   h+=`<div class="card"><div class="funnel" id="funnel">${a.funnel.map((r,i)=>`<div class="frow" data-i="${i}"><div><div class="fn"><span class="cnt" data-c="${sc(r.n,f)}">0</span></div><div class="fl">${r.k}</div></div><div class="ftrack"><div class="fbar" data-w="${r.pct}" style="background:${hexA(1-i*.18)}"><span>${r.pct}%</span></div></div><div class="fd ${r.delta<0?'down':'up'}">${r.delta<0?'▼':'▲'} ${Math.abs(r.delta)}%</div></div>`).join('')}</div><div class="fdetail" id="fdetail"></div></div>`;
   const isOut=/outbound/i.test(a.role);
-  const K_calls=kpi(I.calls,'Total calls',fmt(sc(a.calls,f)),sc(a.mins,f)+' mins talk',a.callsDelta,'kp3',[]);
-  const K_sms=kpi(I.sms,'Total SMS',fmt(sc(a.sms,f)),a.channel.smsPct+'% of contacts',a.smsDelta,'kp4',[]);
-  const K_turn=kpi(I.res,'Turn rate',a.turn+'%','qualified / connected',0,'kp6',[]);
-  h+=`<div class="kgrid">${[K_calls,K_sms,K_turn].join('')}</div>`;
-  const bkItems=isOut
-    ?[['Real conversations',a.breakdown.conversations],['Qualified leads',a.breakdown.qualified],['Transferred',a.breakdown.transferred],['Callbacks',a.breakdown.callbacks]]
-    :[['During hours',a.breakdown.during],['After hours',a.breakdown.after],['Real conversations',a.breakdown.conversations],['Qualified leads',a.breakdown.qualified],['Transferred',a.breakdown.transferred],['Callbacks',a.breakdown.callbacks]];
-  h+=`<div class="card" style="margin-bottom:16px"><div class="csub" style="margin-bottom:18px">CALL BREAKDOWN</div><div class="bkgrid">${bkItems.map(([l,v])=>`<div class="bkcell"><div class="bkv">${fmt(sc(v,f))}</div><div class="bkl">${l}</div></div>`).join('')}</div></div>`;
+  const K_after=kpi(I.moon,'After-hours captured',fmt(sc(a.breakdown.after,f)),"off the clock",0,'kp1',[['During hours',fmt(sc(a.breakdown.during,f))],['After hours',fmt(sc(a.breakdown.after,f))],['Callbacks',fmt(sc(a.breakdown.callbacks,f))]]);
+  const K_speed=kpi(I.bolt,'Speed to lead',a.speed.time,a.speed.within5+'% within 5 min',0,'kp2',[['Touched instantly',fmt(sc(a.speed.instant,f))],['After-hours instant',fmt(sc(a.speed.afterInstant,f))],['Instant → appointment',a.speed.instantToAppt+'%']]);
+  const K_hand=kpi(I.hand,'Human handoff',fmt(sc(a.breakdown.transferred,f)),a.quality.transfer+'% completed',0,'kp5',[['Transferred to human',fmt(sc(a.breakdown.transferred,f))],['Transfer success',a.quality.transfer+'%'],['Callbacks arranged',fmt(sc(a.breakdown.callbacks,f))]]);
+  const K_calls=kpi(I.calls,'Total calls',fmt(sc(a.calls,f)),sc(a.mins,f)+' mins talk',a.callsDelta,'kp3',[['Talk minutes',fmt(sc(a.mins,f))],['Conversations',fmt(sc(a.breakdown.conversations,f))],['Transferred',fmt(sc(a.breakdown.transferred,f))]]);
+  const K_sms=kpi(I.sms,'Total SMS',fmt(sc(a.sms,f)),a.channel.smsPct+'% of contacts',a.smsDelta,'kp4',[['SMS sent',fmt(sc(a.channel.smsSent,f))],['Same-day reply',a.reply[0]+'%'],['Opt-outs',fmt(sc(a.quality.optOuts,f))]]);
+  const kcards=isOut?[K_calls,K_sms]:[K_after,K_speed,K_hand,K_calls,K_sms];
+  h+=`<div class="kgrid">${kcards.join('')}</div>`;
   h+=`<div class="aicard"><span class="aitag">✦ VINI AI</span><div class="aitxt">${aiLine(a,f)}</div></div>`;
   h+=secH(I.chan,'Coverage &amp; activity','WORK DONE');
   h+=`<div class="card" style="margin-bottom:16px"><h3>When calls come in</h3><div class="csub">VOLUME BY HOUR × DAY — LAST 14 DAYS</div><div class="hm" id="callheat"></div><div class="hm-foot"><div class="hm-note" id="callnote"></div><div class="hm-leg">less ${HMB.map(c=>`<i style="background:${c}"></i>`).join('')} more</div></div></div>`;
