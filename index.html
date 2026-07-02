@@ -101,6 +101,10 @@
   .kpi-more{margin-top:12px}
   .kpi-more .mr{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--hair);font-size:12px}
   .kpi-more .mr .ml2{color:var(--ink-2);font-weight:600}.kpi-more .mr .mv2{font-weight:800;font-variant-numeric:tabular-nums}
+  .kpi-dual .kdual{display:flex;gap:14px;margin-top:2px}
+  .kpi-dual .kd{flex:1;min-width:0}
+  .kpi-dual .kd+.kd{border-left:1px solid var(--hair);padding-left:14px}
+  .kpi-dual .kd .kv{font-size:23px;margin-top:4px}
   .hcell{position:relative}.hcell.snk{transform:scale(1.16);z-index:2}
   .khint{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);margin:-4px 2px 16px;text-align:right}
   .frow{cursor:pointer;padding:5px;border-radius:10px;transition:background .15s}
@@ -464,12 +468,17 @@ function render(){
   h+=secH(I.pipe,'Conversion pipeline',STATE.period+' · '+a.bookingRate+'% END-TO-END');
   h+=`<div class="card"><div class="funnel" id="funnel">${a.funnel.map((r,i)=>`<div class="frow" data-i="${i}"><div><div class="fn"><span class="cnt" data-c="${sc(r.n,f)}">0</span></div><div class="fl">${r.k}</div></div><div class="ftrack"><div class="fbar" data-w="${r.pct}" style="background:${hexA(1-i*.18)}"><span>${r.pct}%</span></div></div><div class="fd ${r.delta<0?'down':'up'}">${r.delta<0?'▼':'▲'} ${Math.abs(r.delta)}%</div></div>`).join('')}</div><div class="fdetail" id="fdetail"></div></div>`;
   const isOut=/outbound/i.test(a.role);
-  const K_after=kpi(I.moon,'After-hours captured',fmt(sc(a.breakdown.after,f)),"off the clock",0,'kp1',[['During hours',fmt(sc(a.breakdown.during,f))],['After hours',fmt(sc(a.breakdown.after,f))],['Callbacks',fmt(sc(a.breakdown.callbacks,f))]]);
-  const K_speed=kpi(I.bolt,'Speed to lead',a.speed.time,a.speed.within5+'% within 5 min',0,'kp2',[['Touched instantly',fmt(sc(a.speed.instant,f))],['After-hours instant',fmt(sc(a.speed.afterInstant,f))],['Instant → appointment',a.speed.instantToAppt+'%']]);
   const K_hand=kpi(I.hand,'Human handoff',fmt(sc(a.breakdown.transferred,f)),a.quality.transfer+'% completed',0,'kp5',[['Transferred to human',fmt(sc(a.breakdown.transferred,f))],['Transfer success',a.quality.transfer+'%'],['Callbacks arranged',fmt(sc(a.breakdown.callbacks,f))]]);
   const K_calls=kpi(I.calls,'Total calls',fmt(sc(a.calls,f)),sc(a.mins,f)+' mins talk',a.callsDelta,'kp3',[['Talk minutes',fmt(sc(a.mins,f))],['Conversations',fmt(sc(a.breakdown.conversations,f))],['Transferred',fmt(sc(a.breakdown.transferred,f))]]);
   const K_sms=kpi(I.sms,'Total SMS',fmt(sc(a.sms,f)),a.channel.smsPct+'% of contacts',a.smsDelta,'kp4',[['SMS sent',fmt(sc(a.channel.smsSent,f))],['Same-day reply',a.reply[0]+'%'],['Opt-outs',fmt(sc(a.quality.optOuts,f))]]);
-  const kcards=isOut?[K_hand,K_calls,K_sms]:[K_after,K_speed,K_hand,K_calls,K_sms];
+  let kcards;
+  if(isOut){
+    kcards=[K_calls,K_sms];
+  }else{
+    const M_calls=kpiDual(I.calls,'After-hours captured',fmt(sc(a.breakdown.after,f)),'Total calls',fmt(sc(a.calls,f)),[['After hours',fmt(sc(a.breakdown.after,f))],['Talk minutes',fmt(sc(a.mins,f))],['Conversations',fmt(sc(a.breakdown.conversations,f))],['Callbacks',fmt(sc(a.breakdown.callbacks,f))]]);
+    const M_sms=kpiDual(I.sms,'Speed to lead',a.speed.time,'Total SMS',fmt(sc(a.sms,f)),[['Within 5 min',a.speed.within5+'%'],['Touched instantly',fmt(sc(a.speed.instant,f))],['SMS sent',fmt(sc(a.channel.smsSent,f))],['Same-day reply',a.reply[0]+'%']]);
+    kcards=[M_calls,M_sms,K_hand];
+  }
   h+=`<div class="kgrid">${kcards.join('')}</div>`;
   h+=`<div class="aicard"><span class="aitag">✦ VINI AI</span><div class="aitxt">${aiLine(a,f)}</div></div>`;
   h+=secH(I.chan,'Coverage &amp; activity','WORK DONE');
@@ -549,6 +558,7 @@ function render(){
 }
 function kpi(icon,label,val,sub,delta,sparkId,more){more=more||[];return `<div class="kpi"><div class="ki"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${icon}"/></svg></div><div class="kl">${label.toUpperCase()}</div><div class="kv">${val}</div><div class="kf"><span class="ks">${sub.toUpperCase()}</span>${delta?`<span class="dl-chip ${delta<0?'down':'up'}">${delta<0?'▼':'▲'} ${Math.abs(delta)}%</span>`:''}</div>${more.length?`<div class="kpi-more">${more.map(([l,v])=>`<div class="mr"><span class="ml2">${l}</span><span class="mv2">${v}</span></div>`).join('')}</div>`:''}</div>`;}
 
+function kpiDual(icon,l1,v1,l2,v2,more){more=more||[];return `<div class="kpi kpi-dual"><div class="ki"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${icon}"/></svg></div><div class="kdual"><div class="kd"><div class="kl">${l1.toUpperCase()}</div><div class="kv">${v1}</div></div><div class="kd"><div class="kl">${l2.toUpperCase()}</div><div class="kv">${v2}</div></div></div>${more.length?`<div class="kpi-more">${more.map(([l,v])=>`<div class="mr"><span class="ml2">${l}</span><span class="mv2">${v}</span></div>`).join('')}</div>`:''}</div>`;}
 function post(a,f){
   countUp($('app'));
   requestAnimationFrame(()=>{document.querySelectorAll('.arc').forEach(c=>c.style.strokeDashoffset=c.dataset.off);document.querySelectorAll('.lfill').forEach(i=>i.style.width=i.dataset.w+'%');document.querySelectorAll('.stkseg').forEach(s=>s.style.width=s.dataset.w+'%');});
