@@ -226,6 +226,15 @@
   .hcell:hover{transform:scale(1.2)}
   .hleg{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.06em;margin-top:12px}
   .hleg .sc{display:flex;gap:3px}.hleg .sc i{width:14px;height:14px;border-radius:4px}
+  .hm{display:grid;grid-template-columns:46px repeat(24,minmax(0,1fr));gap:4px;align-items:center;max-width:780px;margin-top:8px}
+  .hm-hlab{grid-column:span 2;font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.03em}
+  .hm-day{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);font-weight:700;text-align:right;padding-right:8px}
+  .hm-cell{aspect-ratio:1;border-radius:5px;opacity:0;transition:opacity .4s ease,transform .12s}
+  .hm-cell:hover{transform:scale(1.22)}
+  .hm-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px;padding-top:16px;border-top:1px solid var(--hair);flex-wrap:wrap}
+  .hm-note{font-size:13px;color:var(--ink-2)}.hm-note b{color:var(--ink);font-weight:800}
+  .hm-leg{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.05em}
+  .hm-leg i{width:14px;height:14px;border-radius:4px;display:inline-block}
   .strip{display:flex;gap:6px}
   .hs{flex:1;height:58px;border-radius:9px;opacity:0;transition:opacity .5s,transform .15s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}
   .hs:hover{transform:translateY(-3px)}.hs span{font-family:var(--mono);font-size:9px;color:#fff;font-weight:700}
@@ -371,6 +380,7 @@ const AGSEG={emily:'sin',marcus:'sout',sofia:'svin'};
 const RANGE={'7D':.24,'14D':.5,'30D':1,'MTD':.68,'ALL':1.7};
 const RLABEL={'7D':'last 7 days','14D':'last 14 days','30D':'last 30 days','MTD':'month to date','ALL':'all time','Custom':'custom range'};
 const AC='#522EBF';
+const HMB=['#EDEBF6','#D7CCF6','#B49AEE','#8A63E0','#5B2FC7'];
 let STATE={agent:'emily',segment:'sin',period:'30D',perMap:{},customFactor:1};
 const $=id=>document.getElementById(id);
 const fmt=n=>n>=1000?Math.round(n).toLocaleString():Math.round(n);
@@ -445,6 +455,26 @@ let SN=0;
 function secH(icon,title,note){SN++;const n=String(SN).padStart(2,'0');return `<div class="sec-h"><span class="si"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${icon}"/></svg></span><h2><span class="snum">${n}</span>${title}</h2><span class="sn">${note}</span></div>`;}
 function aiLine(a,f){const ap=sc(a.funnel[3].n,f);const out=/outbound/i.test(a.role);return out?`${a.name} reached <b>${fmt(sc(a.funnel[0].n,f))}</b> leads and converted <b>${a.bookingRate}%</b> of qualified leads into <b>${ap} appointments</b>, handing <b>${fmt(sc(a.breakdown.transferred,f))}</b> hot conversations to a human.`:`${a.name} converted <b>${a.bookingRate}%</b> of qualified leads into <b>${ap} appointments</b> and captured <b>${fmt(sc(a.breakdown.after,f))}</b> conversations after hours.`;}
 
+function callHeat(el,noteEl,a,f){if(!el)return;const r=rng(a.seed+31);
+  const hourW=[.03,.02,.02,.02,.03,.06,.14,.32,.6,.82,.94,.95,.9,.86,1,.96,.8,.6,.42,.3,.2,.13,.08,.05];
+  const dayW=[1,.98,1,1.05,.92,.6,.3],days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let sumW=0;for(const dw of dayW)for(const hw of hourW)sumW+=dw*hw;
+  const total=Math.max(1,sc(a.calls,f)),scale=total/sumW;
+  const mat=days.map((_,d)=>hourW.map(hw=>Math.max(0,Math.round(scale*dayW[d]*hw*(0.82+0.36*r())))));
+  const mx=Math.max(1,...mat.flat());
+  const hLab=h=>h===0?'12a':h===12?'12p':h<12?''+h:''+(h-12);
+  const tLab=h=>(h%12||12)+(h<12?'AM':'PM');
+  let html=`<div></div>`;
+  for(let i=0;i<12;i++)html+=`<div class="hm-hlab">${hLab(i*2)}</div>`;
+  for(let d=0;d<7;d++){html+=`<div class="hm-day">${days[d]}</div>`;
+    for(let h=0;h<24;h++){const b=Math.round(mat[d][h]/mx*4);html+=`<div class="hm-cell" style="background:${HMB[b]};transition-delay:${(d*24+h)*2}ms" onmousemove="showTT(event,'${days[d]} ${tLab(h)}: ${mat[d][h]} calls')" onmouseleave="hideTT()"></div>`;}}
+  el.innerHTML=html;
+  requestAnimationFrame(()=>el.querySelectorAll('.hm-cell').forEach(c=>c.style.opacity=1));
+  let pk={v:-1,d:3,h:14};for(let d=0;d<7;d++)for(let h=0;h<23;h++){const s=mat[d][h]+mat[d][h+1];if(s>pk.v)pk={v:s,d,h};}
+  const parts=[['mornings',6,12],['afternoons',12,18],['evenings',18,24]];
+  let lo={v:Infinity,d:6,nm:'mornings'};for(let d=0;d<7;d++)for(const[nm,a0,b0]of parts){let s=0;for(let h=a0;h<b0;h++)s+=mat[d][h];if(s<lo.v)lo={v:s,d,nm};}
+  const f12=x=>((x%12)||12),ap=x=>x<12?'AM':'PM',rr=h=>{const e=(h+2)%24;return ap(h)===ap(e)?`${f12(h)}–${f12(e)} ${ap(e)}`:`${f12(h)} ${ap(h)}–${f12(e)} ${ap(e)}`;};
+  if(noteEl)noteEl.innerHTML=`<b>Peak:</b> ${days[pk.d]} ${rr(pk.h)} · <b>Lowest:</b> ${days[lo.d]} ${lo.nm}`;}
 function render(){
   SN=0;
   const a=AGENTS[STATE.agent],f=(STATE.period==='Custom'?(STATE.customFactor||1):RANGE[STATE.period]),ap=sc(a.funnel[3].n,f),per=getPer(a),val=ap*per,ann=val*12;
@@ -482,17 +512,15 @@ function render(){
   h+=`<div class="card" style="margin-bottom:16px"><div class="csub" style="margin-bottom:18px">CALL BREAKDOWN</div><div class="bkgrid">${bkItems.map(([l,v])=>`<div class="bkcell"><div class="bkv">${fmt(sc(v,f))}</div><div class="bkl">${l}</div></div>`).join('')}</div></div>`;
   h+=`<div class="aicard"><span class="aitag">✦ VINI AI</span><div class="aitxt">${aiLine(a,f)}</div></div>`;
   h+=secH(I.chan,'Coverage &amp; activity','WORK DONE');
+  h+=`<div class="card" style="margin-bottom:16px"><h3>When calls come in</h3><div class="csub">VOLUME BY HOUR × DAY — LAST 14 DAYS</div><div class="hm" id="callheat"></div><div class="hm-foot"><div class="hm-note" id="callnote"></div><div class="hm-leg">less ${HMB.map(c=>`<i style="background:${c}"></i>`).join('')} more</div></div></div>`;
   h+=`<div class="grid g2">
     <div class="card"><h3>Channel mix</h3><div class="csub">SHARE OF CONTACTS</div><div class="donut-wrap"><div id="donut"></div><div class="dleg">
       <div class="dl"><i style="background:${AC}"></i>Voice <span class="dn">${fmt(sc(a.channel.voice,f))}</span><span class="dp">${a.channel.voicePct}%</span></div>
       <div class="dl"><i style="background:#C4C2D1"></i>SMS <span class="dn">${fmt(sc(a.channel.sms,f))}</span><span class="dp">${a.channel.smsPct}%</span></div>
       <div class="dmeta">SMS sent <b>${fmt(sc(a.channel.smsSent,f))}</b> · talk <b>${a.channel.talk}</b></div></div></div></div>
-    <div class="card"><h3>Daily intensity</h3><div class="csub">TOUCHED LEADS PER DAY</div><div class="heat" id="heat"></div><div class="hleg">LESS <span class="sc" id="hscale"></span> MORE</div></div>
-  </div>`;
-  h+=`<div class="grid g2" style="margin-top:16px">
     <div class="card"><h3>Time-of-day</h3><div class="csub">BUSINESS HOURS</div><div class="strip" id="tod"></div></div>
-    <div class="card"><h3>7-day momentum</h3><div class="csub">CALLS HANDLED</div><div id="week" style="height:120px"></div></div>
   </div>`;
+  h+=`<div class="card" style="margin-top:16px"><h3>7-day momentum</h3><div class="csub">CALLS HANDLED</div><div id="week" style="height:120px"></div></div>`;
   if(!isOut){
   h+=secH(I.bolt,'Captured demand','WON BACK');
   h+=`<div class="grid g2">
@@ -565,8 +593,7 @@ function post(a,f){
   document.querySelectorAll('.fbar').forEach(b=>{b.style.width=b.dataset.w+'%';b.classList.add('show');});
   stopAnim();
   donut($('donut'),[{val:a.channel.voicePct,color:AC,big:a.channel.smsPct+'%',sub:'SMS'},{val:a.channel.smsPct,color:'#C4C2D1'}],150);
-  const pts=Math.max(7,Math.round(30*f)),cols=pts>20?15:pts>10?10:7;heatmap($('heat'),genSeries(a.seed+31,pts,sc(a.funnel[0].n,f)),cols);
-  const sl=$('hscale');if(sl)sl.innerHTML=[.1,.35,.6,.85,1].map(x=>`<i style="background:${hexA(x)}"></i>`).join('');
+  callHeat($('callheat'),$('callnote'),a,f);
   todChart($('tod'),genSeries(a.seed+9,12,100).map((v,i)=>({label:['7a','8a','9a','10a','11a','12p','1p','2p','3p','4p','5p','6p'][i],v})));
   strip($('reply'),a.reply.map((v,i)=>({label:['Same day','Day 1','Day 2','Day 3+'][i],v})));
   weekChart($('week'),genSeries(a.seed+25,7,sc(a.calls,f)).map((v,i)=>({label:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],v})));
