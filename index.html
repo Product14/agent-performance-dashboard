@@ -80,7 +80,7 @@
   .binput input::-webkit-outer-spin-button,.binput input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
   /* KPI cards minimal */
-  .kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+  .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:16px;margin-bottom:16px}
   .kpi{background:#fff;border:1px solid var(--hair);border-radius:var(--r);padding:18px;box-shadow:var(--sh);transition:.18s;min-width:0}
   .kpi:hover{border-color:var(--hair-2);transform:translateY(-2px)}
   .kpi .ki{width:32px;height:32px;border-radius:9px;background:var(--soft);color:var(--accent);display:grid;place-items:center;margin-bottom:13px}
@@ -277,7 +277,7 @@
 
   .tt{position:fixed;background:#262C42;color:#fff;font-size:11.5px;font-weight:700;padding:7px 11px;border-radius:9px;pointer-events:none;opacity:0;transition:opacity .1s;z-index:99;white-space:nowrap;font-variant-numeric:tabular-nums}
   .foot{text-align:center;color:var(--faint);font-family:var(--mono);font-size:10px;letter-spacing:.08em;margin-top:34px}
-  @media(max-width:1080px){.kgrid{grid-template-columns:repeat(2,1fr)}.g2,.hero-in,.qgrid{grid-template-columns:1fr}.nav{display:none}}
+  @media(max-width:1080px){.g2,.hero-in,.qgrid{grid-template-columns:1fr}.nav{display:none}}
 </style>
 </head>
 <body>
@@ -435,12 +435,12 @@ function updateSnake(dt){const s=ANIM.snake;if(!s)return;s.pos+=dt/320;if(s.pos>
 function startAnim(){if(ANIM.raf)cancelAnimationFrame(ANIM.raf);ANIM.last=0;const loop=ts=>{if(!ANIM.last)ANIM.last=ts;const dt=Math.min(48,ts-ANIM.last);ANIM.last=ts;ANIM.t+=dt/1000;ANIM.sparks.forEach(s=>updateSpark(s,ANIM.t));updateSnake(dt);ANIM.raf=requestAnimationFrame(loop);};ANIM.raf=requestAnimationFrame(loop);}
 let SN=0;
 function secH(icon,title,note){SN++;const n=String(SN).padStart(2,'0');return `<div class="sec-h"><span class="si"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${icon}"/></svg></span><h2><span class="snum">${n}</span>${title}</h2><span class="sn">${note}</span></div>`;}
-function aiLine(a,f){const ap=sc(a.funnel[3].n,f);return `${a.name} converted <b>${a.bookingRate}%</b> of qualified leads into <b>${ap} appointments</b> and captured <b>${fmt(sc(a.breakdown.after,f))}</b> conversations after hours.`;}
+function aiLine(a,f){const ap=sc(a.funnel[3].n,f);const out=/outbound/i.test(a.role);return out?`${a.name} reached <b>${fmt(sc(a.funnel[0].n,f))}</b> leads and converted <b>${a.bookingRate}%</b> of qualified leads into <b>${ap} appointments</b>, handing <b>${fmt(sc(a.breakdown.transferred,f))}</b> hot conversations to a human.`:`${a.name} converted <b>${a.bookingRate}%</b> of qualified leads into <b>${ap} appointments</b> and captured <b>${fmt(sc(a.breakdown.after,f))}</b> conversations after hours.`;}
 
 function render(){
   SN=0;
   const a=AGENTS[STATE.agent],f=(STATE.period==='Custom'?(STATE.customFactor||1):RANGE[STATE.period]),ap=sc(a.funnel[3].n,f),per=getPer(a),val=ap*per,ann=val*12;
-  const I={calls:'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z',sms:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',moon:'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z',bolt:'M13 2L3 14h9l-1 8 10-12h-9l1-8z',pipe:'M3 5h18M6 12h12M10 19h4',chan:'M4 4h16M4 12h16M4 20h10',qual:'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',res:'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM12 6v6l4 2',src:'M3 3v18h18M7 14l4-4 3 3 5-6',cal:'M3 4h18v18H3zM16 2v4M8 2v4M3 10h18',team:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 21a7 7 0 0 1 14 0M17 11a3 3 0 0 0 0-6M22 21a6 6 0 0 0-4-5.7'};
+  const I={calls:'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z',sms:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',moon:'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z',bolt:'M13 2L3 14h9l-1 8 10-12h-9l1-8z',pipe:'M3 5h18M6 12h12M10 19h4',chan:'M4 4h16M4 12h16M4 20h10',qual:'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',res:'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM12 6v6l4 2',src:'M3 3v18h18M7 14l4-4 3 3 5-6',cal:'M3 4h18v18H3zM16 2v4M8 2v4M3 10h18',team:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 21a7 7 0 0 1 14 0M17 11a3 3 0 0 0 0-6M22 21a6 6 0 0 0-4-5.7',hand:'M16 3h5v5M14 10l7-7M8 21H3v-5M10 14l-7 7'};
   let h='';
   h+=`<div class="segcap">PERFORMANCE BY SEGMENT · ${RLABEL[STATE.period].toUpperCase()}</div>`;
   const segTab=(seg)=>{if(!seg.agent)return `<div class="segtab empty"><div class="stl">${seg.label}</div><div class="strow"><span class="add">+ Add</span></div><div class="stv">SEE WHAT IT DOES</div></div>`;const g=AGENTS[seg.agent];return `<div class="segtab ${seg.key===STATE.segment?'on':''}" data-k="${seg.key}"><div class="stl">${seg.label}</div><div class="strow"><span class="stbig">${fmt(sc(g.funnel[0].n,f))}</span><span class="stpc">${g.bookingRate}%</span></div><div class="stv">LEADS · BOOKING RATE</div></div>`;};
@@ -463,12 +463,14 @@ function render(){
     </div></div></div>`;
   h+=secH(I.pipe,'Conversion pipeline',STATE.period+' · '+a.bookingRate+'% END-TO-END');
   h+=`<div class="card"><div class="funnel" id="funnel">${a.funnel.map((r,i)=>`<div class="frow" data-i="${i}"><div><div class="fn"><span class="cnt" data-c="${sc(r.n,f)}">0</span></div><div class="fl">${r.k}</div></div><div class="ftrack"><div class="fbar" data-w="${r.pct}" style="background:${hexA(1-i*.18)}"><span>${r.pct}%</span></div></div><div class="fd ${r.delta<0?'down':'up'}">${r.delta<0?'▼':'▲'} ${Math.abs(r.delta)}%</div></div>`).join('')}</div><div class="fdetail" id="fdetail"></div></div>`;
-  h+=`<div class="kgrid">
-    ${kpi(I.moon,'After-hours captured',fmt(sc(a.breakdown.after,f)),"off the clock",0,'kp1',[['During hours',fmt(sc(a.breakdown.during,f))],['After hours',fmt(sc(a.breakdown.after,f))],['Callbacks',fmt(sc(a.breakdown.callbacks,f))]])}
-    ${kpi(I.bolt,'Speed to lead',a.speed.time,a.speed.within5+'% within 5 min',0,'kp2',[['Touched instantly',fmt(sc(a.speed.instant,f))],['After-hours instant',fmt(sc(a.speed.afterInstant,f))],['Instant → appointment',a.speed.instantToAppt+'%']])}
-    ${kpi(I.calls,'Total calls',fmt(sc(a.calls,f)),sc(a.mins,f)+' mins talk',a.callsDelta,'kp3',[['Talk minutes',fmt(sc(a.mins,f))],['Conversations',fmt(sc(a.breakdown.conversations,f))],['Transferred',fmt(sc(a.breakdown.transferred,f))]])}
-    ${kpi(I.sms,'Total SMS',fmt(sc(a.sms,f)),a.channel.smsPct+'% of contacts',a.smsDelta,'kp4',[['SMS sent',fmt(sc(a.channel.smsSent,f))],['Same-day reply',a.reply[0]+'%'],['Opt-outs',fmt(sc(a.quality.optOuts,f))]])}
-  </div>`;
+  const isOut=/outbound/i.test(a.role);
+  const K_after=kpi(I.moon,'After-hours captured',fmt(sc(a.breakdown.after,f)),"off the clock",0,'kp1',[['During hours',fmt(sc(a.breakdown.during,f))],['After hours',fmt(sc(a.breakdown.after,f))],['Callbacks',fmt(sc(a.breakdown.callbacks,f))]]);
+  const K_speed=kpi(I.bolt,'Speed to lead',a.speed.time,a.speed.within5+'% within 5 min',0,'kp2',[['Touched instantly',fmt(sc(a.speed.instant,f))],['After-hours instant',fmt(sc(a.speed.afterInstant,f))],['Instant → appointment',a.speed.instantToAppt+'%']]);
+  const K_hand=kpi(I.hand,'Human handoff',fmt(sc(a.breakdown.transferred,f)),a.quality.transfer+'% completed',0,'kp5',[['Transferred to human',fmt(sc(a.breakdown.transferred,f))],['Transfer success',a.quality.transfer+'%'],['Callbacks arranged',fmt(sc(a.breakdown.callbacks,f))]]);
+  const K_calls=kpi(I.calls,'Total calls',fmt(sc(a.calls,f)),sc(a.mins,f)+' mins talk',a.callsDelta,'kp3',[['Talk minutes',fmt(sc(a.mins,f))],['Conversations',fmt(sc(a.breakdown.conversations,f))],['Transferred',fmt(sc(a.breakdown.transferred,f))]]);
+  const K_sms=kpi(I.sms,'Total SMS',fmt(sc(a.sms,f)),a.channel.smsPct+'% of contacts',a.smsDelta,'kp4',[['SMS sent',fmt(sc(a.channel.smsSent,f))],['Same-day reply',a.reply[0]+'%'],['Opt-outs',fmt(sc(a.quality.optOuts,f))]]);
+  const kcards=isOut?[K_hand,K_calls,K_sms]:[K_after,K_speed,K_hand,K_calls,K_sms];
+  h+=`<div class="kgrid">${kcards.join('')}</div>`;
   h+=`<div class="aicard"><span class="aitag">✦ VINI AI</span><div class="aitxt">${aiLine(a,f)}</div></div>`;
   h+=secH(I.chan,'Coverage &amp; activity','WORK DONE');
   h+=`<div class="grid g2">
@@ -482,6 +484,7 @@ function render(){
     <div class="card"><h3>Time-of-day</h3><div class="csub">BUSINESS HOURS</div><div class="strip" id="tod"></div></div>
     <div class="card"><h3>7-day momentum</h3><div class="csub">CALLS HANDLED</div><div id="week" style="height:120px"></div></div>
   </div>`;
+  if(!isOut){
   h+=secH(I.bolt,'Captured demand','WON BACK');
   h+=`<div class="grid g2">
     <div class="card"><div class="radrow"><div>${radial(a.speed.within5,120)}</div><div><div class="rt">${a.speed.time}</div><div class="rn"><b style="color:var(--ink)">${a.speed.within5}%</b> of new leads contacted within 5 min — <b style="color:var(--ink)">${fmt(sc(a.breakdown.after,f))}</b> after hours.</div></div></div>
@@ -495,6 +498,7 @@ function render(){
       ${a.missed.map(([t,n])=>`<div class="di"><span>${t.replace(/·(.*)$/,'· <span style="color:var(--faint)">$1</span>')}</span><span class="dn">${n}</span></div>`).join('')}
       <h3 style="margin-top:20px">Multi-day reply</h3><div class="csub">${a.reply[0]}% SAME-DAY</div><div class="strip" id="reply"></div></div>
   </div>`;
+  }
   h+=secH(I.qual,'Conversation quality','TRUST');
   h+=`<div class="qgrid">
     <div class="qt qr">${radial(a.quality.answer,60)}<span class="ql">ANSWER<br>RATE</span></div>
